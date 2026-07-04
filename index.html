@@ -21,7 +21,7 @@
 </head>
 <body>
 <div id="root"><div id="boot-fallback">Cargando…</div></div>
- 
+
 <script type="importmap">
 {
   "imports": {
@@ -31,11 +31,11 @@
 }
 </script>
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
- 
+
 <script type="text/babel" data-type="module">
 import React, { useState, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
- 
+
 /* A tiny hand-rolled icon set — the only icons that truly need to be crisp
    vector glyphs (chevrons, plus, check, x, pencil, trash, calendar, trend
    arrows, minus). Everything else (habit symbols, category badges, star
@@ -60,11 +60,11 @@ function Icon({ name, size = 16, color, style }) {
     default: return null;
   }
 }
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Constants                                                              */
 /* ---------------------------------------------------------------------- */
- 
+
 const CATEGORY_DEFS = [
   { key: "numero", label: "Número", emoji: "🔢" },
   { key: "tiempo", label: "Tiempo", emoji: "⏱️" },
@@ -73,18 +73,18 @@ const CATEGORY_DEFS = [
   { key: "booleano", label: "Sí / No", emoji: "✅" },
 ];
 const CAT_BY_KEY = Object.fromEntries(CATEGORY_DEFS.map((c) => [c.key, c]));
- 
+
 const FREQS = ["Diario", "Semanal", "Quincenal", "Mensual"];
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
 const MONTHS = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
   "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ];
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Date helpers (weeks start on Monday)                                  */
 /* ---------------------------------------------------------------------- */
- 
+
 const pad2 = (n) => String(n).padStart(2, "0");
 const dateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const keyToDate = (k) => {
@@ -106,7 +106,7 @@ const timeToMinutes = (hhmm) => {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 };
- 
+
 function monthMatrix(year, month) {
   const first = new Date(year, month, 1);
   const offset = mondayIndex(first);
@@ -119,15 +119,15 @@ function monthMatrix(year, month) {
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   return weeks;
 }
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Storage helpers — plain browser localStorage (works once deployed as   */
 /*  a standalone site; kept async-shaped so the rest of the app is         */
 /*  unchanged). A namespaced key prefix avoids clashing with other sites.  */
 /* ---------------------------------------------------------------------- */
- 
+
 const STORAGE_PREFIX = "habitos_app:";
- 
+
 async function storageGet(key, fallback) {
   try {
     const raw = window.localStorage.getItem(STORAGE_PREFIX + key);
@@ -148,11 +148,11 @@ function storageClearAll() {
     ["habits", "entries", "rows"].forEach((k) => window.localStorage.removeItem(STORAGE_PREFIX + k));
   } catch (e) { /* ignore */ }
 }
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Small building blocks                                                  */
 /* ---------------------------------------------------------------------- */
- 
+
 /* Curated symbol library — common habits, plus the ones already discussed
    in this build (leer, dormir, correr, agua...). Stored per-habit as
    habit.icon so people can pick whichever best represents each one. */
@@ -179,7 +179,7 @@ const HABIT_ICONS = [
   { key: "smartphone", label: "Pantallas", emoji: "📱" },
 ];
 const HABIT_ICONS_BY_KEY = Object.fromEntries(HABIT_ICONS.map((i) => [i.key, i]));
- 
+
 /* One symbol per habit: the person's chosen icon, falling back to the first
    category's icon for habits created before symbols existed. The protected
    "Dormir" habit gets the electric-blue treatment as its signature spot. */
@@ -202,9 +202,9 @@ function HabitIcon({ habit, size = 14 }) {
     </span>
   );
 }
- 
+
 const ADDITIVE_TYPES = ["numero", "tiempo", "valor"];
- 
+
 /* Progress display: "5/10 páginas" — sums as the person keeps registering */
 function formatValue(cat, val) {
   const v = val === "" || val === undefined || val === null ? 0 : val;
@@ -214,7 +214,7 @@ function formatValue(cat, val) {
   if (cat.type === "tiempo" || cat.type === "valor") return `${v || 0}/${cat.meta}${cat.unit ? " " + cat.unit : ""}`;
   return `${v}`;
 }
- 
+
 /* A single registro's own value, without the "/meta" comparison */
 function formatRaw(cat, val) {
   const v = val === "" || val === undefined || val === null ? 0 : val;
@@ -223,7 +223,7 @@ function formatRaw(cat, val) {
   if (cat.type === "tiempo" || cat.type === "valor") return `${v || 0}${cat.unit ? " " + cat.unit : ""}`;
   return `${v}`;
 }
- 
+
 /* Today's total per category across every individual registro:
    additive categories (número/tiempo/valor) sum across all of the day's
    registros; escala/booleano use the most recent one (they don't accumulate). */
@@ -239,13 +239,13 @@ function computeAggregate(categories, records) {
   });
   return agg;
 }
- 
+
 function meetsGoal(cat, val) {
   if (cat.type === "booleano") return val === cat.meta;
   const num = parseFloat(val);
   return !isNaN(num) && num >= parseFloat(cat.meta);
 }
- 
+
 function metaSummary(c) {
   if (c.type === "booleano") return `Meta: ${c.meta ? "Sí" : "No"}`;
   if (c.type === "numero") return `Meta: ${c.meta}`;
@@ -253,7 +253,7 @@ function metaSummary(c) {
   if (c.type === "escala") return `Meta: ${c.meta}★${c.label ? " (" + c.label + ")" : ""}`;
   return `Meta: ${c.meta}`;
 }
- 
+
 /* Digital-crown style numeric wheel */
 function CrownWheel({ values, value, onChange, labelFormatter, width = 64 }) {
   const idx = Math.max(0, values.indexOf(value));
@@ -291,7 +291,7 @@ const crownBtnStyle = {
   width: "100%", background: "transparent", border: "none", cursor: "pointer",
   color: "var(--teal)", display: "flex", justifyContent: "center", padding: 2,
 };
- 
+
 /* Single defined-time crown (hour + minute) — a fixed moment, not a range */
 function TimeCrown({ hh, mm, onChange }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -304,7 +304,7 @@ function TimeCrown({ hh, mm, onChange }) {
     </div>
   );
 }
- 
+
 /* Big, centered call-to-action — the main action of Tab 1 (one size down) */
 const bigAddBtn = {
   display: "inline-flex", alignItems: "center", gap: 8, background: "var(--teal)", color: "#fff",
@@ -316,7 +316,7 @@ const habitPillDashed = {
   border: "1px dashed var(--amber)", background: "var(--amber-soft)", color: "var(--amber-ink)",
   fontSize: 13.5, fontWeight: 500, cursor: "pointer",
 };
- 
+
 /* Digital-crown style habit picker: rotate (scroll / arrows) to browse,
    then press "Seleccionar" to move on to editing that habit's registro. */
 function HabitCrownPicker({ habits, onSelect, onNew }) {
@@ -363,7 +363,7 @@ function HabitCrownPicker({ habits, onSelect, onNew }) {
     </div>
   );
 }
- 
+
 /* Month calendar (Monday-first) used as a date picker popover */
 function MiniCalendar({ selected, onSelect, onClose }) {
   const sel = keyToDate(selected);
@@ -416,7 +416,7 @@ function MiniCalendar({ selected, onSelect, onClose }) {
   );
 }
 const iconBtnSm = { background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-soft)", display: "flex" };
- 
+
 function Stars({ value, onChange, max = 10, disabled }) {
   return (
     <div style={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -436,23 +436,23 @@ function Stars({ value, onChange, max = 10, disabled }) {
     </div>
   );
 }
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Tab 1 — Registro diario                                                */
 /* ---------------------------------------------------------------------- */
- 
+
 function TabRegistro({ habits, entries, commitEntry, editRecord, removeRecord, rows, goToCreate }) {
   return (
     <div style={{ padding: "0 4px" }}>
       <h1 style={titleStyle}>Hábito</h1>
- 
+
       <ActivityAdder habits={habits} entries={entries} onCommit={commitEntry} goToCreate={goToCreate} />
- 
+
       <RegistroTable habits={habits} entries={entries} rows={rows} editRecord={editRecord} removeRecord={removeRecord} />
     </div>
   );
 }
- 
+
 /* Every individual registro as one row — like a spreadsheet: Hábito, Meta,
    Hora, Fecha, Suma (running total up to and including that row for
    additive categories), and a pencil to edit that specific row. Editing a
@@ -460,7 +460,7 @@ function TabRegistro({ habits, entries, commitEntry, editRecord, removeRecord, r
    since it's recalculated from the full history each render. */
 function RegistroTable({ habits, entries, rows, editRecord, removeRecord }) {
   const [editingKey, setEditingKey] = useState(null);
- 
+
   const flat = [];
   rows.forEach((group) => {
     const habit = habits.find((h) => h.id === group.habitId);
@@ -479,12 +479,12 @@ function RegistroTable({ habits, entries, rows, editRecord, removeRecord }) {
       });
     });
   });
- 
+
   flat.sort((a, b) => {
     if (a.date !== b.date) return b.date.localeCompare(a.date);
     return b.record.savedAt.localeCompare(a.record.savedAt);
   });
- 
+
   if (flat.length === 0) {
     return (
       <p style={{ color: "var(--ink-soft)", fontSize: 13.5, textAlign: "center", padding: "24px 0" }}>
@@ -492,7 +492,7 @@ function RegistroTable({ habits, entries, rows, editRecord, removeRecord }) {
       </p>
     );
   }
- 
+
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 0.6fr 0.7fr 1.1fr 22px 22px", gap: 8, padding: "0 10px", marginBottom: 6 }}>
@@ -557,7 +557,7 @@ function RegistroTable({ habits, entries, rows, editRecord, removeRecord }) {
     </div>
   );
 }
- 
+
 /* Header CTA: rotate the crown to browse habits, "Seleccionar" transitions
    into editing that habit's registro (fecha + valores) before it's saved. */
 function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
@@ -566,7 +566,7 @@ function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
   const [selectedId, setSelectedId] = useState(null);
   const [date, setDate] = useState(todayKey());
   const [calOpen, setCalOpen] = useState(false);
- 
+
   const togglePanel = () => {
     setOpen((o) => {
       const next = !o;
@@ -574,17 +574,17 @@ function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
       return next;
     });
   };
- 
+
   const currentHabit = habits.find((h) => h.id === selectedId) || null;
   const existingRecords = currentHabit ? (entries[`${currentHabit.id}__${date}`] || []) : [];
   const aggregate = currentHabit ? computeAggregate(currentHabit.categories, existingRecords) : {};
- 
+
   const handleSave = (values) => {
     onCommit(currentHabit.id, date, values);
     setOpen(false);
     setPhase("browse");
   };
- 
+
   return (
     <>
       <div style={{ textAlign: "center", margin: "6px 0 16px" }}>
@@ -592,7 +592,7 @@ function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
           <Icon name="plus" size={20} /> Agregar actividad
         </button>
       </div>
- 
+
       {open && phase === "browse" && (
         <div style={{ marginBottom: 22 }}>
           <HabitCrownPicker
@@ -602,7 +602,7 @@ function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
           />
         </div>
       )}
- 
+
       {open && phase === "edit" && currentHabit && (
         <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: "14px 16px", marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -614,7 +614,7 @@ function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
               Cambiar hábito
             </button>
           </div>
- 
+
           <div style={{ position: "relative", marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>Fecha</div>
             <button onClick={() => setCalOpen((o) => !o)} style={{
@@ -626,14 +626,14 @@ function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
             </button>
             {calOpen && <MiniCalendar selected={date} onSelect={setDate} onClose={() => setCalOpen(false)} />}
           </div>
- 
+
           <RegistroForm habit={currentHabit} mode="add" aggregate={aggregate} onSave={handleSave} onCancel={() => setOpen(false)} />
         </div>
       )}
     </>
   );
 }
- 
+
 /* Reusable per-registro editor. mode="add" creates a brand-new registro (the
    "llevas X/meta" hint and the goal shortcut account for today's existing
    total); mode="edit" edits one existing registro in place — its value simply
@@ -646,7 +646,7 @@ function RegistroForm({ habit, mode, initialValues, aggregate, onSave, onCancel 
   };
   const [values, setValues] = useState(initialValues || buildBlank());
   const [locked, setLocked] = useState(false);
- 
+
   const applyGoal = (checked) => {
     setLocked(checked);
     if (checked) {
@@ -662,7 +662,7 @@ function RegistroForm({ habit, mode, initialValues, aggregate, onSave, onCancel 
       setValues(v);
     }
   };
- 
+
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
@@ -691,7 +691,7 @@ function RegistroForm({ habit, mode, initialValues, aggregate, onSave, onCancel 
     </div>
   );
 }
- 
+
 function CategoryEditor({ cat, value, locked, already, onChange }) {
   const def = CAT_BY_KEY[cat.type];
   const name = cat.label || def.label;
@@ -740,11 +740,11 @@ const inputSm = {
 function halfBtn(active) {
   return { flex: 1, padding: "6px 0", border: "none", cursor: "pointer", background: active ? "var(--teal)" : "#fff", color: active ? "#fff" : "var(--ink)", fontSize: 12.5, fontWeight: 600 };
 }
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Tab 2 — Crear hábito                                                   */
 /* ---------------------------------------------------------------------- */
- 
+
 function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
   const [open, setOpen] = useState(false);
   const [editingHabitId, setEditingHabitId] = useState(null);
@@ -756,17 +756,17 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
   const [days, setDays] = useState([]);
   const [ph, setPh] = useState(8); const [pm, setPm] = useState(0);
   const [error, setError] = useState("");
- 
+
   const toggleCat = (key) => setCats((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
   const setMeta = (key, patch) => setMetas((m) => ({ ...m, [key]: { ...m[key], ...patch } }));
   const toggleDay = (i) => setDays((prev) => (prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i]));
- 
+
   const reset = () => {
     setEditingHabitId(null);
     setName(""); setIcon(null); setCats([]); setMetas({}); setFreq("Diario"); setDays([]);
     setPh(8); setPm(0); setError("");
   };
- 
+
   const openEdit = (h) => {
     setEditingHabitId(h.id);
     setName(h.name);
@@ -784,7 +784,7 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
     setError("");
     setOpen(true);
   };
- 
+
   const submit = () => {
     if (!name.trim()) { setError("Escribe un nombre para el hábito."); return; }
     if (cats.length === 0) { setError("Selecciona al menos una categoría."); return; }
@@ -821,11 +821,11 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
     reset();
     setOpen(false);
   };
- 
+
   return (
     <div style={{ padding: "0 4px" }}>
       <h1 style={{ ...titleStyle, letterSpacing: 1.5, fontSize: 26 }}>Crear hábito</h1>
- 
+
       {!open && (
         <div style={{ textAlign: "center" }}>
           <button onClick={() => setOpen(true)} style={primaryBtnBig}>
@@ -833,7 +833,7 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
           </button>
         </div>
       )}
- 
+
       {open && (
         <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: 18, marginTop: 16 }}>
           {editingHabitId && (
@@ -863,7 +863,7 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
               </div>
             </div>
           </div>
- 
+
           <div style={{ marginTop: 14 }}>
             <FieldLabel>Símbolo</FieldLabel>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -883,7 +883,7 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
               })}
             </div>
           </div>
- 
+
           {cats.length > 0 && (
             <div style={{ marginTop: 16 }}>
               <FieldLabel>Meta y frecuencia</FieldLabel>
@@ -898,7 +898,7 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
                   </select>
                 </div>
               </div>
- 
+
               {freq !== "Diario" && (
                 <div style={{ marginTop: 12 }}>
                   <FieldSub>Días (opcional, para personalizar)</FieldSub>
@@ -919,14 +919,14 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
               )}
             </div>
           )}
- 
+
           <div style={{ marginTop: 16 }}>
             <FieldLabel>Horario preferido</FieldLabel>
             <TimeCrown hh={ph} mm={pm} onChange={(h, m) => { setPh(h); setPm(m); }} />
           </div>
- 
+
           {error && <p style={{ color: "var(--red)", fontSize: 12.5, marginTop: 12 }}>{error}</p>}
- 
+
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
             <button onClick={submit} style={primaryBtnBig}>
               <Icon name="check" size={16} /> {editingHabitId ? "Guardar cambios" : "Guardar hábito"}
@@ -935,9 +935,9 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
           </div>
         </div>
       )}
- 
+
       <HabitsList habits={habits} onEdit={openEdit} onDelete={onDelete} />
- 
+
       <div style={{ marginTop: 30, textAlign: "center" }}>
         <button
           onClick={() => { if (window.confirm("¿Borrar todos los hábitos y registros? Esta acción no se puede deshacer.")) onResetAll(); }}
@@ -949,7 +949,7 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
     </div>
   );
 }
- 
+
 function HabitsList({ habits, onEdit, onDelete }) {
   if (!habits.length) return null;
   return (
@@ -998,7 +998,7 @@ function HabitsList({ habits, onEdit, onDelete }) {
     </div>
   );
 }
- 
+
 function metaLine(c) {
   if (c.type === "booleano") return c.meta ? "Sí" : "No";
   if (c.type === "numero") return `${c.meta}`;
@@ -1006,17 +1006,17 @@ function metaLine(c) {
   if (c.type === "escala") return `${c.meta}★${c.label ? " (" + c.label + ")" : ""}`;
   return `${c.meta}`;
 }
- 
+
 function FieldLabel({ children }) {
   return <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{children}</div>;
 }
 function FieldSub({ children }) {
   return <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>{children}</div>;
 }
- 
+
 function MetaEditor({ catKey, meta, onChange }) {
   const label = CAT_BY_KEY[catKey].label;
- 
+
   if (catKey === "booleano") {
     const val = meta?.meta === false ? false : true;
     return (
@@ -1078,7 +1078,7 @@ function MetaEditor({ catKey, meta, onChange }) {
   }
   return null;
 }
- 
+
 const primaryBtnBig = {
   display: "inline-flex", alignItems: "center", gap: 8, background: "var(--teal)", color: "#fff",
   border: "none", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer",
@@ -1087,13 +1087,13 @@ const secondaryBtn = {
   background: "transparent", color: "var(--ink-soft)", border: "1px solid var(--line)",
   borderRadius: 999, padding: "11px 18px", fontSize: 14, cursor: "pointer",
 };
- 
+
 /* ---------------------------------------------------------------------- */
 /*  Tab 3 — Seguimiento / estadísticas                                     */
 /* ---------------------------------------------------------------------- */
- 
+
 const FREQ_PERIODS = ["Semana", "Quincena", "Mes"];
- 
+
 /* The list of date-keys (oldest → newest, ending today) that the selected
    period covers. "Mes" is the current calendar month so far. */
 function periodDayKeys(period, now) {
@@ -1110,20 +1110,20 @@ function periodDayKeys(period, now) {
   }
   return keys;
 }
- 
+
 function dayColLabel(k, period) {
   const d = keyToDate(k);
   if (period === "Semana") return WEEKDAYS[mondayIndex(d)];
   return String(d.getDate());
 }
- 
+
 function habitDoneOnDay(habit, entries, k) {
   const records = entries[`${habit.id}__${k}`];
   if (!records || !records.length) return null; // no data that day
   const aggregate = computeAggregate(habit.categories, records);
   return habit.categories.every((c) => meetsGoal(c, aggregate[c.type]));
 }
- 
+
 /* General stats always consider the FULL set of habits — they describe
    overall performance, independent of which single habit is selected. */
 function computeGeneralStats(allHabits, entries, days) {
@@ -1133,7 +1133,7 @@ function computeGeneralStats(allHabits, entries, days) {
     if (freq === "Quincenal") return Math.max(1, Math.ceil(n / 15));
     return 1;
   };
- 
+
   let completed = 0, expected = 0, logged = 0;
   allHabits.forEach((h) => {
     expected += expectedFor(h.frequency, days.length);
@@ -1144,7 +1144,7 @@ function computeGeneralStats(allHabits, entries, days) {
   });
   const completionRate = expected > 0 ? Math.min(100, Math.round((completed / expected) * 100)) : 0;
   const consistency = (allHabits.length * days.length) > 0 ? Math.round((logged / (allHabits.length * days.length)) * 100) : 0;
- 
+
   const rate = (subset) => {
     let c = 0, e = 0;
     allHabits.forEach((h) => subset.forEach((k) => {
@@ -1163,14 +1163,14 @@ function computeGeneralStats(allHabits, entries, days) {
     if (diff > 0.05) trend = "sube";
     else if (diff < -0.05) trend = "baja";
   }
- 
+
   const counts = {};
   allHabits.forEach((h) => { counts[h.frequency] = (counts[h.frequency] || 0) + 1; });
   const freqLabel = Object.entries(counts).map(([f, n]) => `${n} ${f.toLowerCase()}`).join(", ") || "—";
- 
+
   return { completionRate, consistency, trend, freqLabel };
 }
- 
+
 /* Specific stats are computed per single habit over the selected period. */
 function computeSpecificStats(habit, entries, days) {
   const savedMinutes = [];
@@ -1179,11 +1179,11 @@ function computeSpecificStats(habit, entries, days) {
     if (records && records.length) records.forEach((r) => { if (r.savedAt) savedMinutes.push(timeToMinutes(r.savedAt)); });
     return habitDoneOnDay(habit, entries, k) === true;
   });
- 
+
   let streak = 0;
   for (let i = doneFlags.length - 1; i >= 0; i--) { if (doneFlags[i]) streak += 1; else break; }
   const missed = doneFlags.filter((d) => !d).length;
- 
+
   let stdDevLabel = "—";
   if (savedMinutes.length >= 2) {
     const mean = savedMinutes.reduce((a, b) => a + b, 0) / savedMinutes.length;
@@ -1191,10 +1191,10 @@ function computeSpecificStats(habit, entries, days) {
     const sd = Math.sqrt(variance);
     stdDevLabel = sd < 60 ? `${Math.round(sd)} min` : `${(sd / 60).toFixed(1)} h`;
   }
- 
+
   return { streak, missed, stdDevLabel };
 }
- 
+
 /* Minimal dropdown: a button showing the current choice, opening a small
    list below it — used for both the habit and the frequency selectors. */
 function SimpleDropdown({ options, value, onChange }) {
@@ -1231,7 +1231,7 @@ function SimpleDropdown({ options, value, onChange }) {
     </div>
   );
 }
- 
+
 /* Habits as rows, days as columns — a dot lights up teal where the habit
    was completed that day, amber where it was logged but fell short. */
 function HabitHeatmap({ habitList, entries, days, period }) {
@@ -1279,7 +1279,7 @@ function HabitHeatmap({ habitList, entries, days, period }) {
     </div>
   );
 }
- 
+
 /* A tiny hand-rolled scatter plot (no chart library needed) for the sleep chart. */
 function SleepScatter({ data, xMax }) {
   const width = 300, height = 150, padL = 22, padB = 6, padT = 6, padR = 6;
@@ -1303,26 +1303,26 @@ function SleepScatter({ data, xMax }) {
     </svg>
   );
 }
- 
+
 function TabSeguimiento({ habits, entries }) {
   const [selectedId, setSelectedId] = useState(null);
   const [period, setPeriod] = useState("Mes");
- 
+
   const selectedHabit = habits.find((h) => h.id === selectedId) || null;
   const now = new Date();
   const days = useMemo(() => periodDayKeys(period, now), [period]);
- 
+
   const heatmapHabits = selectedHabit ? [selectedHabit] : habits;
   const general = useMemo(() => computeGeneralStats(habits, entries, days), [habits, entries, days]);
   const specific = useMemo(() => (selectedHabit ? computeSpecificStats(selectedHabit, entries, days) : null), [selectedHabit, entries, days]);
   const specificAll = useMemo(() => (!selectedHabit ? habits.map((h) => ({ habit: h, ...computeSpecificStats(h, entries, days) })) : []), [selectedHabit, habits, entries, days]);
- 
+
   const sleepHabit = useMemo(() => {
     const flagged = habits.find((h) => h.isDefault);
     if (flagged && flagged.categories.some((c) => c.type === "tiempo")) return flagged;
     return habits.find((h) => /sue.o|dorm/i.test(h.name) && h.categories.some((c) => c.type === "tiempo")) || null;
   }, [habits]);
- 
+
   const chartData = useMemo(() => {
     if (!sleepHabit) return [];
     const year = now.getFullYear(), month = now.getMonth();
@@ -1340,19 +1340,19 @@ function TabSeguimiento({ habits, entries }) {
     }
     return data;
   }, [sleepHabit, entries]);
- 
+
   const habitOptions = [{ value: null, label: "General (todos)" }, ...habits.map((h) => ({ value: h.id, label: h.name }))];
   const periodOptions = FREQ_PERIODS.map((p) => ({ value: p, label: p }));
- 
+
   return (
     <div style={{ padding: "0 4px" }}>
       <h1 style={{ ...titleStyle, letterSpacing: 1.5, fontSize: 26 }}>Seguimiento</h1>
- 
+
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <SimpleDropdown options={habitOptions} value={selectedId} onChange={setSelectedId} />
         <SimpleDropdown options={periodOptions} value={period} onChange={setPeriod} />
       </div>
- 
+
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: "16px 18px", marginBottom: 20 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 8 }}>
           Horas de sueño — {MONTHS[now.getMonth()]}
@@ -1367,9 +1367,9 @@ function TabSeguimiento({ habits, entries }) {
           </p>
         )}
       </div>
- 
+
       <HabitHeatmap habitList={heatmapHabits} entries={entries} days={days} period={period} />
- 
+
       <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--ink-soft)", fontWeight: 700, marginBottom: 8 }}>
         Estadísticas generales
       </div>
@@ -1386,11 +1386,11 @@ function TabSeguimiento({ habits, entries }) {
           </span>
         } />
       </div>
- 
+
       <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--ink-soft)", fontWeight: 700, marginBottom: 8 }}>
         {selectedHabit ? `Estadísticas de "${selectedHabit.name}"` : "Estadísticas por hábito"}
       </div>
- 
+
       {selectedHabit ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
           <StatCard label="Racha actual" value={`${specific.streak} día${specific.streak === 1 ? "" : "s"}`} />
@@ -1420,7 +1420,7 @@ function TabSeguimiento({ habits, entries }) {
     </div>
   );
 }
- 
+
 function StatCard({ label, value, small }) {
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px" }}>
@@ -1433,12 +1433,12 @@ function StatCard({ label, value, small }) {
     </div>
   );
 }
- 
+
 const titleStyle = {
   textAlign: "center", fontSize: 15, fontWeight: 700, letterSpacing: 3,
   textTransform: "uppercase", color: "var(--ink-soft)", margin: "6px 0 20px",
 };
- 
+
 /* A protected, always-present habit: fully editable, but never deletable —
    it's the reliable source for the sleep chart in Seguimiento. */
 const DEFAULT_SLEEP_HABIT = {
@@ -1451,18 +1451,18 @@ const DEFAULT_SLEEP_HABIT = {
   schedule: { time: "22:00" },
   isDefault: true,
 };
- 
+
 /* ---------------------------------------------------------------------- */
 /*  App shell                                                              */
 /* ---------------------------------------------------------------------- */
- 
+
 function App() {
   const [tab, setTab] = useState(1);
   const [habits, setHabits] = useState([]);
   const [entries, setEntries] = useState({});
   const [rows, setRows] = useState([]);
   const [ready, setReady] = useState(false);
- 
+
   useEffect(() => {
     (async () => {
       const [h, rawEntries, r] = await Promise.all([
@@ -1470,13 +1470,13 @@ function App() {
         storageGet("entries", {}),
         storageGet("rows", []),
       ]);
- 
+
       // Migrate legacy single-object entries (pre multi-registro model) into arrays.
       const e = {};
       Object.entries(rawEntries).forEach(([k, v]) => {
         e[k] = Array.isArray(v) ? v : [{ id: "legacy", values: v.values, savedAt: v.savedAt }];
       });
- 
+
       let seeded = h;
       if (!h.some((x) => x.isDefault)) {
         // Prefer linking to whichever existing sleep-like habit already has the
@@ -1499,16 +1499,16 @@ function App() {
           }
         }
       }
- 
+
       setHabits(seeded); setEntries(e); setRows(r);
       setReady(true);
     })();
   }, []);
- 
+
   useEffect(() => { if (ready) storageSet("habits", habits); }, [habits, ready]);
   useEffect(() => { if (ready) storageSet("entries", entries); }, [entries, ready]);
   useEffect(() => { if (ready) storageSet("rows", rows); }, [rows, ready]);
- 
+
   const addHabit = (habit) => { setHabits((prev) => [...prev, habit]); setTab(1); };
   const updateHabit = (habit) => { setHabits((prev) => prev.map((h) => (h.id === habit.id ? habit : h))); };
   const deleteHabit = (id) => {
@@ -1519,7 +1519,7 @@ function App() {
     });
     setRows((prev) => prev.filter((r) => r.habitId !== id));
   };
- 
+
   // Wipes every habit, registro and row back to a clean slate — just the
   // protected "Dormir" habit remains, ready for real use.
   const resetAll = () => {
@@ -1529,7 +1529,7 @@ function App() {
     setRows([]);
     setTab(1);
   };
- 
+
   // Adds a brand-new registro for (habitId, date). It never overwrites — it
   // appends to that day's list, and the day's total is the sum of everything
   // in it. Also makes sure a group card exists in `rows` to show it.
@@ -1542,7 +1542,7 @@ function App() {
       return exists ? prev : [...prev, { rowId: `${habitId}-${date}`, habitId, date }];
     });
   };
- 
+
   // Edits one specific registro in place — only that record changes; the
   // day's total recalculates automatically since it's derived from the sum.
   const editRecord = (habitId, date, recordId, values) => {
@@ -1552,7 +1552,7 @@ function App() {
       [key]: (prev[key] || []).map((r) => (r.id === recordId ? { ...r, values } : r)),
     }));
   };
- 
+
   const removeRecord = (habitId, date, recordId) => {
     setEntries((prev) => {
       const key = `${habitId}__${date}`;
@@ -1560,11 +1560,11 @@ function App() {
       return { ...prev, [key]: list };
     });
   };
- 
+
   if (!ready) {
     return <div style={{ padding: 40, textAlign: "center", color: "var(--ink-soft)" }}>Cargando…</div>;
   }
- 
+
   return (
     <div style={{
       fontFamily: "var(--font-sans)", background: "var(--paper)", color: "var(--ink)",
@@ -1585,11 +1585,11 @@ function App() {
         .no-scrollbar { scrollbar-width: none; }
         button { font-family: var(--font-sans); }
       `}</style>
- 
+
       {tab === 1 && <TabRegistro habits={habits} entries={entries} commitEntry={commitEntry} editRecord={editRecord} removeRecord={removeRecord} rows={rows} goToCreate={() => setTab(2)} />}
       {tab === 2 && <TabCrear onCreate={addHabit} onUpdate={updateHabit} onDelete={deleteHabit} onResetAll={resetAll} habits={habits} />}
       {tab === 3 && <TabSeguimiento habits={habits} entries={entries} />}
- 
+
       <div style={{
         position: "absolute", bottom: 16, left: 18, right: 18, display: "flex",
         background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: 5, gap: 4,
@@ -1601,7 +1601,7 @@ function App() {
     </div>
   );
 }
- 
+
 function NavBtn({ active, onClick, emoji, label }) {
   return (
     <button onClick={onClick} style={{
@@ -1614,11 +1614,11 @@ function NavBtn({ active, onClick, emoji, label }) {
     </button>
   );
 }
- 
+
 createRoot(document.getElementById("root")).render(<App />);
- 
+
 </script>
- 
+
 <script>
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
@@ -1628,4 +1628,3 @@ createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
- 
