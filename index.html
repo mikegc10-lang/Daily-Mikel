@@ -15,7 +15,6 @@
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
 <style>
   html, body { margin: 0; padding: 0; background: #EDEAE1; }
-  #root { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; }
   #boot-fallback { font-family: sans-serif; color: #6B7066; text-align: center; padding: 60px 20px; }
 </style>
 </head>
@@ -33,7 +32,7 @@
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 
 <script type="text/babel" data-type="module">
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 
 /* A tiny hand-rolled icon set — the only icons that truly need to be crisp
@@ -254,6 +253,24 @@ function metaSummary(c) {
   return `Meta: ${c.meta}`;
 }
 
+/* Lets the digital-crown wheels be swiped with a finger, not just clicked —
+   mouse wheel events don't fire on touch, so this was missing on mobile. */
+function useCrownSwipe(step) {
+  const ref = useRef({ y: 0, acc: 0 });
+  const onTouchStart = (e) => { ref.current.y = e.touches[0].clientY; ref.current.acc = 0; };
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    const delta = ref.current.y - y;
+    ref.current.y = y;
+    ref.current.acc += delta;
+    const threshold = 20;
+    while (ref.current.acc >= threshold) { step(1); ref.current.acc -= threshold; }
+    while (ref.current.acc <= -threshold) { step(-1); ref.current.acc += threshold; }
+  };
+  return { onTouchStart, onTouchMove };
+}
+
 /* Digital-crown style numeric wheel */
 function CrownWheel({ values, value, onChange, labelFormatter, width = 64 }) {
   const idx = Math.max(0, values.indexOf(value));
@@ -261,12 +278,14 @@ function CrownWheel({ values, value, onChange, labelFormatter, width = 64 }) {
     const next = (idx + dir + values.length) % values.length;
     onChange(values[next]);
   };
+  const swipe = useCrownSwipe(step);
   const prevVal = values[(idx - 1 + values.length) % values.length];
   const nextVal = values[(idx + 1) % values.length];
   return (
     <div
-      style={{ width, userSelect: "none" }}
+      style={{ width, userSelect: "none", touchAction: "none" }}
       onWheel={(e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }}
+      {...swipe}
     >
       <button aria-label="siguiente" onClick={() => step(1)} style={crownBtnStyle}><Icon name="chevron-up" size={14} /></button>
       <div style={{ textAlign: "center", padding: "2px 0" }}>
@@ -321,7 +340,11 @@ const habitPillDashed = {
    then press "Seleccionar" to move on to editing that habit's registro. */
 function HabitCrownPicker({ habits, onSelect, onNew }) {
   const [idx, setIdx] = useState(0);
-  if (habits.length === 0) {
+  const n = habits.length;
+  const step = (dir) => { if (n > 0) setIdx((i) => (i + dir + n) % n); };
+  const swipe = useCrownSwipe(step);
+
+  if (n === 0) {
     return (
       <div style={{ textAlign: "center" }}>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10 }}>Aún no hay hábitos guardados.</p>
@@ -329,14 +352,12 @@ function HabitCrownPicker({ habits, onSelect, onNew }) {
       </div>
     );
   }
-  const n = habits.length;
-  const step = (dir) => setIdx((i) => (i + dir + n) % n);
   const current = habits[idx % n];
   const prevH = habits[(idx - 1 + n) % n];
   const nextH = habits[(idx + 1) % n];
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <div style={{ width: 230, userSelect: "none" }} onWheel={(e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }}>
+      <div style={{ width: 230, userSelect: "none", touchAction: "none" }} onWheel={(e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }} {...swipe}>
         <button onClick={() => step(-1)} style={crownBtnStyle} aria-label="anterior"><Icon name="chevron-up" size={15} /></button>
         <div style={{ textAlign: "center", padding: "2px 0" }}>
           <div style={{ fontSize: 12.5, color: "var(--ink-soft)", opacity: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -1562,14 +1583,11 @@ function App() {
   };
 
   if (!ready) {
-    return <div style={{ padding: 40, textAlign: "center", color: "var(--ink-soft)" }}>Cargando…</div>;
+    return <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 40px) 20px 40px", textAlign: "center", color: "var(--ink-soft)" }}>Cargando…</div>;
   }
 
   return (
-    <div style={{
-      fontFamily: "var(--font-sans)", background: "var(--paper)", color: "var(--ink)",
-      borderRadius: 20, padding: "22px 18px 90px", maxWidth: 640, margin: "0 auto", position: "relative", minHeight: 560,
-    }}>
+    <>
       <style>{`
         :root {
           --paper: #EDEAE1; --card: #F8F6EF; --ink: #23281F; --ink-soft: #6B7066;
@@ -1577,28 +1595,45 @@ function App() {
           --blue: #2761E8; --blue-soft: #DDE7FB; --blue-ink: #1B3F9E;
           --amber: #C98A3B; --amber-soft: #F3E3CB; --amber-ink: #8A5A20; --red: #B24632;
           --font-sans: 'IBM Plex Sans', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+          --nav-h: 62px;
         }
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
+        html, body { margin: 0; background: var(--paper); }
+        body { min-height: 100vh; min-height: 100dvh; }
         input, select { font-family: var(--font-sans); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { scrollbar-width: none; }
         button { font-family: var(--font-sans); }
       `}</style>
 
-      {tab === 1 && <TabRegistro habits={habits} entries={entries} commitEntry={commitEntry} editRecord={editRecord} removeRecord={removeRecord} rows={rows} goToCreate={() => setTab(2)} />}
-      {tab === 2 && <TabCrear onCreate={addHabit} onUpdate={updateHabit} onDelete={deleteHabit} onResetAll={resetAll} habits={habits} />}
-      {tab === 3 && <TabSeguimiento habits={habits} entries={entries} />}
+      <div style={{
+        fontFamily: "var(--font-sans)", background: "var(--paper)", color: "var(--ink)",
+        maxWidth: 640, margin: "0 auto", minHeight: "100dvh", boxSizing: "border-box",
+        paddingLeft: 18, paddingRight: 18,
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 18px)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 26px)",
+      }}>
+        {tab === 1 && <TabRegistro habits={habits} entries={entries} commitEntry={commitEntry} editRecord={editRecord} removeRecord={removeRecord} rows={rows} goToCreate={() => setTab(2)} />}
+        {tab === 2 && <TabCrear onCreate={addHabit} onUpdate={updateHabit} onDelete={deleteHabit} onResetAll={resetAll} habits={habits} />}
+        {tab === 3 && <TabSeguimiento habits={habits} entries={entries} />}
+      </div>
 
       <div style={{
-        position: "absolute", bottom: 16, left: 18, right: 18, display: "flex",
-        background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: 5, gap: 4,
+        position: "fixed", left: 18, right: 18, bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+        maxWidth: 604, margin: "0 auto", zIndex: 50,
       }}>
-        <NavBtn active={tab === 1} onClick={() => setTab(1)} emoji="📝" label="Hábito" />
-        <NavBtn active={tab === 2} onClick={() => setTab(2)} emoji="➕" label="Crear" />
-        <NavBtn active={tab === 3} onClick={() => setTab(3)} emoji="📊" label="Seguimiento" />
+        <div style={{
+          display: "flex", height: "var(--nav-h)", boxSizing: "border-box",
+          background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: 5, gap: 4,
+          boxShadow: "0 8px 22px rgba(35,40,31,0.18)",
+        }}>
+          <NavBtn active={tab === 1} onClick={() => setTab(1)} emoji="📝" label="Hábito" />
+          <NavBtn active={tab === 2} onClick={() => setTab(2)} emoji="➕" label="Crear" />
+          <NavBtn active={tab === 3} onClick={() => setTab(3)} emoji="📊" label="Seguimiento" />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
