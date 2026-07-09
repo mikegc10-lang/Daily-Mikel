@@ -14,7 +14,7 @@
 <link rel="icon" href="./icons/icon-192.png" />
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
 <style>
-  html, body { margin: 0; padding: 0; background: #EDEAE1; }
+  html, body { margin: 0; padding: 0; background: #EDEAE1; height: 100%; }
   #boot-fallback { font-family: sans-serif; color: #6B7066; text-align: center; padding: 60px 20px; }
 </style>
 </head>
@@ -176,6 +176,16 @@ const HABIT_ICONS = [
   { key: "target", label: "Metas", emoji: "🎯" },
   { key: "flame", label: "Constancia", emoji: "🔥" },
   { key: "smartphone", label: "Pantallas", emoji: "📱" },
+  { key: "work", label: "Trabajo", emoji: "💼" },
+  { key: "nature", label: "Aire libre / Naturaleza", emoji: "🌳" },
+  { key: "pet", label: "Mascota", emoji: "🐾" },
+  { key: "cleaning", label: "Limpieza", emoji: "🧹" },
+  { key: "cooking", label: "Cocinar", emoji: "🍳" },
+  { key: "travel", label: "Viajes", emoji: "✈️" },
+  { key: "language", label: "Idiomas", emoji: "🗣️" },
+  { key: "code", label: "Programación", emoji: "💻" },
+  { key: "garden", label: "Jardinería", emoji: "🌱" },
+  { key: "pill", label: "Medicina / Vitaminas", emoji: "💊" },
 ];
 const HABIT_ICONS_BY_KEY = Object.fromEntries(HABIT_ICONS.map((i) => [i.key, i]));
 
@@ -254,15 +264,17 @@ function metaSummary(c) {
 }
 
 /* Lets the digital-crown wheels be swiped with a finger, not just clicked —
-   mouse wheel events don't fire on touch, so this was missing on mobile. */
-function useCrownSwipe(step) {
-  const ref = useRef({ y: 0, acc: 0 });
-  const onTouchStart = (e) => { ref.current.y = e.touches[0].clientY; ref.current.acc = 0; };
+   mouse wheel events don't fire on touch, so this was missing on mobile.
+   axis="y" for vertical wheels, axis="x" for the compact horizontal ones. */
+function useCrownSwipe(step, axis = "y") {
+  const ref = useRef({ pos: 0, acc: 0 });
+  const getPos = (e) => (axis === "y" ? e.touches[0].clientY : e.touches[0].clientX);
+  const onTouchStart = (e) => { ref.current.pos = getPos(e); ref.current.acc = 0; };
   const onTouchMove = (e) => {
     e.preventDefault();
-    const y = e.touches[0].clientY;
-    const delta = ref.current.y - y;
-    ref.current.y = y;
+    const p = getPos(e);
+    const delta = axis === "y" ? ref.current.pos - p : p - ref.current.pos;
+    ref.current.pos = p;
     ref.current.acc += delta;
     const threshold = 20;
     while (ref.current.acc >= threshold) { step(1); ref.current.acc -= threshold; }
@@ -271,41 +283,38 @@ function useCrownSwipe(step) {
   return { onTouchStart, onTouchMove };
 }
 
-/* Digital-crown style numeric wheel */
-function CrownWheel({ values, value, onChange, labelFormatter, width = 64 }) {
+/* Compact digital-crown: sits at the same height as a regular input ("casilla"),
+   showing just the current value with small ‹ › arrows on either side — and the
+   whole control can still be swiped left/right with a finger to change it fast. */
+function CrownWheel({ values, value, onChange, labelFormatter, width = 56 }) {
   const idx = Math.max(0, values.indexOf(value));
   const step = (dir) => {
     const next = (idx + dir + values.length) % values.length;
     onChange(values[next]);
   };
-  const swipe = useCrownSwipe(step);
-  const prevVal = values[(idx - 1 + values.length) % values.length];
-  const nextVal = values[(idx + 1) % values.length];
+  const swipe = useCrownSwipe(step, "x");
   return (
     <div
-      style={{ width, userSelect: "none", touchAction: "none" }}
+      style={{ display: "inline-flex", alignItems: "center", gap: 3, userSelect: "none", touchAction: "none" }}
       onWheel={(e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }}
       {...swipe}
     >
-      <button aria-label="siguiente" onClick={() => step(1)} style={crownBtnStyle}><Icon name="chevron-up" size={14} /></button>
-      <div style={{ textAlign: "center", padding: "2px 0" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-soft)", opacity: 0.5 }}>
-          {labelFormatter(prevVal)}
-        </div>
-        <div style={{
-          fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 600, color: "var(--ink)",
-          padding: "2px 0", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)",
-        }}>
-          {labelFormatter(value)}
-        </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-soft)", opacity: 0.5 }}>
-          {labelFormatter(nextVal)}
-        </div>
+      <button aria-label="anterior" onClick={() => step(-1)} style={compactCrownBtn}><Icon name="chevron-left" size={12} /></button>
+      <div style={{
+        minWidth: width, textAlign: "center", padding: "6px 6px", borderRadius: 8,
+        border: "1px solid var(--line)", background: "#fff",
+        fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
+      }}>
+        {labelFormatter(value)}
       </div>
-      <button aria-label="anterior" onClick={() => step(-1)} style={crownBtnStyle}><Icon name="chevron-down" size={14} /></button>
+      <button aria-label="siguiente" onClick={() => step(1)} style={compactCrownBtn}><Icon name="chevron-right" size={12} /></button>
     </div>
   );
 }
+const compactCrownBtn = {
+  width: 24, height: 30, flex: "0 0 auto", background: "var(--card)", border: "1px solid var(--line)",
+  borderRadius: 8, cursor: "pointer", color: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+};
 const crownBtnStyle = {
   width: "100%", background: "transparent", border: "none", cursor: "pointer",
   color: "var(--teal)", display: "flex", justifyContent: "center", padding: 2,
@@ -465,8 +474,6 @@ function Stars({ value, onChange, max = 10, disabled }) {
 function TabRegistro({ habits, entries, commitEntry, editRecord, removeRecord, rows, goToCreate }) {
   return (
     <div style={{ padding: "0 4px" }}>
-      <h1 style={titleStyle}>Hábito</h1>
-
       <ActivityAdder habits={habits} entries={entries} onCommit={commitEntry} goToCreate={goToCreate} />
 
       <RegistroTable habits={habits} entries={entries} rows={rows} editRecord={editRecord} removeRecord={removeRecord} />
@@ -845,8 +852,6 @@ function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
 
   return (
     <div style={{ padding: "0 4px" }}>
-      <h1 style={{ ...titleStyle, letterSpacing: 1.5, fontSize: 26 }}>Crear hábito</h1>
-
       {!open && (
         <div style={{ textAlign: "center" }}>
           <button onClick={() => setOpen(true)} style={primaryBtnBig}>
@@ -1367,8 +1372,6 @@ function TabSeguimiento({ habits, entries }) {
 
   return (
     <div style={{ padding: "0 4px" }}>
-      <h1 style={{ ...titleStyle, letterSpacing: 1.5, fontSize: 26 }}>Seguimiento</h1>
-
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <SimpleDropdown options={habitOptions} value={selectedId} onChange={setSelectedId} />
         <SimpleDropdown options={periodOptions} value={period} onChange={setPeriod} />
@@ -1455,9 +1458,9 @@ function StatCard({ label, value, small }) {
   );
 }
 
-const titleStyle = {
-  textAlign: "center", fontSize: 15, fontWeight: 700, letterSpacing: 3,
-  textTransform: "uppercase", color: "var(--ink-soft)", margin: "6px 0 20px",
+const headerTitleStyle = {
+  textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: 1.2,
+  color: "var(--ink)", margin: 0,
 };
 
 /* A protected, always-present habit: fully editable, but never deletable —
@@ -1586,6 +1589,8 @@ function App() {
     return <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 40px) 20px 40px", textAlign: "center", color: "var(--ink-soft)" }}>Cargando…</div>;
   }
 
+  const TAB_TITLES = { 1: "Hábito", 2: "Crear hábito", 3: "Seguimiento" };
+
   return (
     <>
       <style>{`
@@ -1595,12 +1600,11 @@ function App() {
           --blue: #2761E8; --blue-soft: #DDE7FB; --blue-ink: #1B3F9E;
           --amber: #C98A3B; --amber-soft: #F3E3CB; --amber-ink: #8A5A20; --red: #B24632;
           --font-sans: 'IBM Plex Sans', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
-          --nav-h: 62px;
+          --nav-h: 58px;
         }
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
-        html, body { margin: 0; background: var(--paper); }
-        body { min-height: 100vh; min-height: 100dvh; }
+        html, body { margin: 0; background: var(--paper); height: 100%; }
         input, select { font-family: var(--font-sans); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { scrollbar-width: none; }
@@ -1609,28 +1613,38 @@ function App() {
 
       <div style={{
         fontFamily: "var(--font-sans)", background: "var(--paper)", color: "var(--ink)",
-        maxWidth: 640, margin: "0 auto", minHeight: "100dvh", boxSizing: "border-box",
-        paddingLeft: 18, paddingRight: 18,
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 18px)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 26px)",
+        maxWidth: 640, margin: "0 auto", height: "100dvh",
+        display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
-        {tab === 1 && <TabRegistro habits={habits} entries={entries} commitEntry={commitEntry} editRecord={editRecord} removeRecord={removeRecord} rows={rows} goToCreate={() => setTab(2)} />}
-        {tab === 2 && <TabCrear onCreate={addHabit} onUpdate={updateHabit} onDelete={deleteHabit} onResetAll={resetAll} habits={habits} />}
-        {tab === 3 && <TabSeguimiento habits={habits} entries={entries} />}
-      </div>
-
-      <div style={{
-        position: "fixed", left: 18, right: 18, bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-        maxWidth: 604, margin: "0 auto", zIndex: 50,
-      }}>
+        {/* Fixed header — always clears the Dynamic Island / notch */}
         <div style={{
-          display: "flex", height: "var(--nav-h)", boxSizing: "border-box",
-          background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: 5, gap: 4,
-          boxShadow: "0 8px 22px rgba(35,40,31,0.18)",
+          flex: "0 0 auto", background: "var(--paper)", borderBottom: "1px solid var(--line)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 14px)", paddingBottom: 12, paddingLeft: 18, paddingRight: 18,
         }}>
-          <NavBtn active={tab === 1} onClick={() => setTab(1)} emoji="📝" label="Hábito" />
-          <NavBtn active={tab === 2} onClick={() => setTab(2)} emoji="➕" label="Crear" />
-          <NavBtn active={tab === 3} onClick={() => setTab(3)} emoji="📊" label="Seguimiento" />
+          <h1 style={headerTitleStyle}>{TAB_TITLES[tab]}</h1>
+        </div>
+
+        {/* Scrollable content — the only part of the screen that scrolls */}
+        <div style={{ flex: "1 1 auto", overflowY: "auto", paddingLeft: 18, paddingRight: 18, paddingTop: 16, paddingBottom: 20 }} className="no-scrollbar">
+          {tab === 1 && <TabRegistro habits={habits} entries={entries} commitEntry={commitEntry} editRecord={editRecord} removeRecord={removeRecord} rows={rows} goToCreate={() => setTab(2)} />}
+          {tab === 2 && <TabCrear onCreate={addHabit} onUpdate={updateHabit} onDelete={deleteHabit} onResetAll={resetAll} habits={habits} />}
+          {tab === 3 && <TabSeguimiento habits={habits} entries={entries} />}
+        </div>
+
+        {/* Fixed footer nav — always pinned to the bottom, never scrolls away */}
+        <div style={{
+          flex: "0 0 auto", background: "var(--paper)", borderTop: "1px solid var(--line)",
+          paddingLeft: 18, paddingRight: 18, paddingTop: 8,
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        }}>
+          <div style={{
+            display: "flex", height: "var(--nav-h)", boxSizing: "border-box",
+            background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: 5, gap: 4,
+          }}>
+            <NavBtn active={tab === 1} onClick={() => setTab(1)} emoji="📝" label="Hábito" />
+            <NavBtn active={tab === 2} onClick={() => setTab(2)} emoji="➕" label="Crear" />
+            <NavBtn active={tab === 3} onClick={() => setTab(3)} emoji="📊" label="Seguimiento" />
+          </div>
         </div>
       </div>
     </>
