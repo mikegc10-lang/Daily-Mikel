@@ -1,1679 +1,1035 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-<title>Hábitos</title>
-<meta name="description" content="Registro diario de hábitos personales" />
-<meta name="theme-color" content="#145C3C" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Hábitos" />
-<link rel="manifest" href="./manifest.json" />
-<link rel="icon" href="./icons/icon-192.png" />
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2A2620">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Registro de Gastos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  html, body { margin: 0; padding: 0; background: #EDEAE1; height: 100%; }
-  #boot-fallback { font-family: sans-serif; color: #6B7066; text-align: center; padding: 60px 20px; }
+  :root{
+    --paper:#F6F1E7;
+    --paper-2:#FFFDF8;
+    --ink:#2A2620;
+    --ink-soft:#8A8172;
+    --line:#DDD3BF;
+    --income:#0F5C40;
+    --income-soft:#DCEEE4;
+    --expense:#0057FF;
+    --expense-soft:#DDE8FF;
+    --gold:#C98A2C;
+    --gold-soft:#F1E4C8;
+    --radius:14px;
+    --font-display:'Space Mono', monospace;
+    --font-body:'Manrope', sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%; background:var(--ink);}
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    overscroll-behavior-y:none;
+  }
+  .app{
+    max-width:600px;
+    width:100%;
+    margin:0 auto;
+    height:100dvh;
+    background:var(--paper);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* ---------- Summary header (sticky, ticket style) ---------- */
+  .summary-wrap{
+    position:sticky;
+    top:0;
+    z-index:20;
+    flex:0 0 auto;
+  }
+  .summary{
+    background:var(--ink);
+    color:var(--paper);
+    padding:calc(env(safe-area-inset-top) + 12px) 16px 18px;
+  }
+  .summary-title{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#c9c1af;
+    text-align:center;
+    margin:0 0 10px;
+    font-weight:600;
+  }
+  .summary-row{
+    display:flex;
+    align-items:stretch;
+    justify-content:space-between;
+  }
+  .stat{
+    flex:1;
+    text-align:center;
+    padding:0 4px;
+  }
+  .stat-label{
+    display:block;
+    font-size:10.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:#a89f8c;
+    margin-bottom:4px;
+  }
+  .stat-value{
+    display:block;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:17px;
+    white-space:nowrap;
+  }
+  .stat-income .stat-value{color:#7fd9ae;}
+  .stat-expense .stat-value{color:#86b4ff;}
+  .stat-balance{
+    position:relative;
+    padding:0 10px;
+  }
+  .stat-balance .stat-value{
+    font-size:22px;
+    color:var(--gold);
+  }
+  .stat-balance .stat-value.neg{color:#86b4ff;}
+  .divider{
+    width:1px;
+    background:#4a453c;
+    margin:2px 0;
+  }
+  .ticket-edge{
+    height:9px;
+    width:100%;
+    background:var(--ink);
+    display:block;
+  }
+
+  /* ---------- Content ---------- */
+  .content{
+    flex:1 1 auto;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:18px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- Registrar view ---------- */
+  .section-label{
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:0 0 8px;
+  }
+  .segmented{
+    display:flex;
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:4px;
+    gap:4px;
+    margin-bottom:16px;
+  }
+  .seg-btn{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:10px 0;
+    font-family:var(--font-body);
+    font-weight:700;
+    font-size:14px;
+    color:var(--ink-soft);
+    border-radius:9px;
+    cursor:pointer;
+  }
+  .seg-btn.active.type-gasto{background:var(--expense); color:#fff;}
+  .seg-btn.active.type-ingreso{background:var(--income); color:#fff;}
+
+  .amount-box{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 16px;
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .amount-sign{
+    font-family:var(--font-display);
+    font-size:26px;
+    font-weight:700;
+    color:var(--ink-soft);
+  }
+  #amountInput{
+    flex:1;
+    border:none;
+    background:transparent;
+    font-family:var(--font-display);
+    font-size:32px;
+    font-weight:700;
+    color:var(--ink);
+    outline:none;
+    width:100%;
+    -moz-appearance:textfield;
+  }
+  #amountInput::-webkit-outer-spin-button,
+  #amountInput::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  #amountInput::placeholder{color:#c9bfa6;}
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .chip{
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .chip.active.type-gasto{background:var(--expense-soft); border-color:var(--expense); color:var(--expense);}
+  .chip.active.type-ingreso{background:var(--income-soft); border-color:var(--income); color:var(--income);}
+  .chip.expanded{border-color:var(--ink); }
+
+  .otros-list{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    margin:-6px 0 16px;
+    background:var(--paper-2);
+  }
+  .otros-list-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 14px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    border-bottom:1px dashed var(--line);
+    cursor:pointer;
+  }
+  .otros-list-item:last-child{border-bottom:none;}
+  .otros-list-item.active{color:var(--expense); background:var(--expense-soft);}
+  .otros-list-item .check{color:var(--expense); font-weight:800;}
+
+  .field-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .field-row .field{flex:1;}
+  .field label{
+    display:block;
+    font-size:11px;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .field input[type="text"],
+  .field input[type="date"]{
+    width:100%;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:var(--font-body);
+    font-size:16px;
+    color:var(--ink);
+    outline:none;
+  }
+
+  .btn-submit{
+    width:100%;
+    border:none;
+    border-radius:var(--radius);
+    padding:15px 0;
+    font-family:var(--font-body);
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:.02em;
+    color:#fff;
+    cursor:pointer;
+    margin-bottom:26px;
+  }
+  .btn-submit.type-gasto{background:var(--expense);}
+  .btn-submit.type-ingreso{background:var(--income);}
+  .btn-submit:disabled{opacity:.4;}
+
+  .today-list .item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:11px 0;
+    border-bottom:1px dashed var(--line);
+    gap:10px;
+  }
+  .item-info{min-width:0;}
+  .item-cat{font-size:14px; font-weight:700; color:var(--ink);}
+  .item-note{font-size:12px; color:var(--ink-soft); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .item-right{display:flex; align-items:center; gap:10px; flex:0 0 auto;}
+  .item-amount{font-family:var(--font-display); font-weight:700; font-size:15px; white-space:nowrap;}
+  .item-amount.gasto{color:var(--expense);}
+  .item-amount.ingreso{color:var(--income);}
+  .del-btn{
+    border:none; background:none; cursor:pointer; padding:4px;
+    color:var(--ink-soft); font-size:15px; line-height:1;
+  }
+  .empty-state{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:26px 10px;
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+  }
+
+  /* ---------- Historial view ---------- */
+  .month-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .month-nav button{
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    width:34px; height:34px;
+    border-radius:50%;
+    font-size:16px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .month-label{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px;
+    text-transform:capitalize;
+  }
+  .month-summary{
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-bottom:14px;
+  }
+  .month-summary b{color:var(--ink); font-weight:700;}
+  .filters{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .filter-btn{
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    padding:7px 13px;
+    border-radius:20px;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .filter-btn.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+
+  .day-group{margin-bottom:18px;}
+  .day-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:4px;
+  }
+  .day-header .day-name{
+    font-size:12px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+  }
+  .day-header .day-net{
+    font-family:var(--font-display);
+    font-size:12px;
+    font-weight:700;
+  }
+  .day-net.pos{color:var(--income);}
+  .day-net.neg{color:var(--expense);}
+
+  .backup-label{margin-top:22px;}
+  .backup-buttons{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .backup-btn{
+    flex:1;
+    text-align:center;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:12.5px;
+    font-weight:700;
+    padding:10px 6px;
+    border-radius:10px;
+    cursor:pointer;
+    display:block;
+  }
+  .backup-hint{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.4;
+    margin:0 0 6px;
+  }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar{
+    flex:0 0 auto;
+    display:flex;
+    border-top:1px solid var(--line);
+    background:var(--paper-2);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tab{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    border:none;
+    background:transparent;
+    padding:10px 0 8px;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .tab.active{color:var(--ink);}
+  .tab svg{width:21px; height:21px;}
+  .tab span{font-size:11px; font-weight:700;}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:absolute;
+    bottom:76px;
+    left:50%;
+    transform:translateX(-50%) translateY(10px);
+    background:var(--ink);
+    color:var(--paper);
+    font-size:13px;
+    font-weight:600;
+    padding:9px 18px;
+    border-radius:20px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s, transform .2s;
+    z-index:50;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
-<div id="root"><div id="boot-fallback">Cargando…</div></div>
+<div class="app">
 
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.3.1",
-    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
-  }
-}
-</script>
-<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-
-<script type="text/babel" data-type="module">
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { createRoot } from "react-dom/client";
-
-/* A tiny hand-rolled icon set — the only icons that truly need to be crisp
-   vector glyphs (chevrons, plus, check, x, pencil, trash, calendar, trend
-   arrows, minus). Everything else (habit symbols, category badges, star
-   ratings) uses plain emoji, so the whole app has zero external icon or
-   chart dependency and works fully offline once cached. */
-function Icon({ name, size = 16, color, style }) {
-  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color || "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", style };
-  switch (name) {
-    case "chevron-up": return <svg {...common}><polyline points="18 15 12 9 6 15" /></svg>;
-    case "chevron-down": return <svg {...common}><polyline points="6 9 12 15 18 9" /></svg>;
-    case "chevron-left": return <svg {...common}><polyline points="15 18 9 12 15 6" /></svg>;
-    case "chevron-right": return <svg {...common}><polyline points="9 18 15 12 9 6" /></svg>;
-    case "plus": return <svg {...common}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
-    case "check": return <svg {...common}><polyline points="20 6 9 17 4 12" /></svg>;
-    case "x": return <svg {...common}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-    case "pencil": return <svg {...common}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>;
-    case "trash": return <svg {...common}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>;
-    case "calendar": return <svg {...common}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
-    case "trending-up": return <svg {...common}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
-    case "trending-down": return <svg {...common}><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></svg>;
-    case "minus": return <svg {...common}><line x1="5" y1="12" x2="19" y2="12" /></svg>;
-    default: return null;
-  }
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Constants                                                              */
-/* ---------------------------------------------------------------------- */
-
-const CATEGORY_DEFS = [
-  { key: "numero", label: "Número", emoji: "🔢" },
-  { key: "tiempo", label: "Tiempo", emoji: "⏱️" },
-  { key: "escala", label: "Escala", emoji: "⭐" },
-  { key: "valor", label: "Valor", emoji: "📏" },
-  { key: "booleano", label: "Sí / No", emoji: "✅" },
-];
-const CAT_BY_KEY = Object.fromEntries(CATEGORY_DEFS.map((c) => [c.key, c]));
-
-const FREQS = ["Diario", "Semanal", "Quincenal", "Mensual"];
-const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
-const MONTHS = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-
-/* ---------------------------------------------------------------------- */
-/*  Date helpers (weeks start on Monday)                                  */
-/* ---------------------------------------------------------------------- */
-
-const pad2 = (n) => String(n).padStart(2, "0");
-const dateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-const keyToDate = (k) => {
-  const [y, m, d] = k.split("-").map(Number);
-  return new Date(y, m - 1, d);
-};
-const todayKey = () => dateKey(new Date());
-const mondayIndex = (d) => (d.getDay() + 6) % 7; // 0 = Monday
-const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-const fmtDate = (k) => {
-  const d = keyToDate(k);
-  return `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
-};
-const fmtDateShort = (k) => {
-  const d = keyToDate(k);
-  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
-};
-const timeToMinutes = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-};
-
-function monthMatrix(year, month) {
-  const first = new Date(year, month, 1);
-  const offset = mondayIndex(first);
-  const total = daysInMonth(year, month);
-  const cells = [];
-  for (let i = 0; i < offset; i++) cells.push(null);
-  for (let day = 1; day <= total; day++) cells.push(new Date(year, month, day));
-  while (cells.length % 7 !== 0) cells.push(null);
-  const weeks = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-  return weeks;
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Storage helpers — plain browser localStorage (works once deployed as   */
-/*  a standalone site; kept async-shaped so the rest of the app is         */
-/*  unchanged). A namespaced key prefix avoids clashing with other sites.  */
-/* ---------------------------------------------------------------------- */
-
-const STORAGE_PREFIX = "habitos_app:";
-
-async function storageGet(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_PREFIX + key);
-    return raw !== null ? JSON.parse(raw) : fallback;
-  } catch (e) {
-    return fallback;
-  }
-}
-async function storageSet(key, value) {
-  try {
-    window.localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
-  } catch (e) {
-    /* ignore — keeps app usable even if persistence fails (e.g. private mode) */
-  }
-}
-function storageClearAll() {
-  try {
-    ["habits", "entries", "rows"].forEach((k) => window.localStorage.removeItem(STORAGE_PREFIX + k));
-  } catch (e) { /* ignore */ }
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Small building blocks                                                  */
-/* ---------------------------------------------------------------------- */
-
-/* Curated symbol library — common habits, plus the ones already discussed
-   in this build (leer, dormir, correr, agua...). Stored per-habit as
-   habit.icon so people can pick whichever best represents each one. */
-const HABIT_ICONS = [
-  { key: "book", label: "Leer", emoji: "📖" },
-  { key: "moon", label: "Dormir", emoji: "🌙" },
-  { key: "droplet", label: "Agua", emoji: "💧" },
-  { key: "dumbbell", label: "Ejercicio", emoji: "🏋️" },
-  { key: "footprints", label: "Caminar / Correr", emoji: "🏃" },
-  { key: "bike", label: "Ciclismo", emoji: "🚴" },
-  { key: "apple", label: "Alimentación", emoji: "🍎" },
-  { key: "brain", label: "Meditación", emoji: "🧘" },
-  { key: "music", label: "Música", emoji: "🎵" },
-  { key: "pen", label: "Escritura", emoji: "✍️" },
-  { key: "wallet", label: "Finanzas", emoji: "💰" },
-  { key: "graduation", label: "Estudio", emoji: "🎓" },
-  { key: "heart", label: "Salud", emoji: "❤️" },
-  { key: "sun", label: "Rutina", emoji: "☀️" },
-  { key: "coffee", label: "Café", emoji: "☕" },
-  { key: "palette", label: "Arte", emoji: "🎨" },
-  { key: "users", label: "Social", emoji: "👥" },
-  { key: "target", label: "Metas", emoji: "🎯" },
-  { key: "flame", label: "Constancia", emoji: "🔥" },
-  { key: "smartphone", label: "Pantallas", emoji: "📱" },
-  { key: "work", label: "Trabajo", emoji: "💼" },
-  { key: "nature", label: "Aire libre / Naturaleza", emoji: "🌳" },
-  { key: "pet", label: "Mascota", emoji: "🐾" },
-  { key: "cleaning", label: "Limpieza", emoji: "🧹" },
-  { key: "cooking", label: "Cocinar", emoji: "🍳" },
-  { key: "travel", label: "Viajes", emoji: "✈️" },
-  { key: "language", label: "Idiomas", emoji: "🗣️" },
-  { key: "code", label: "Programación", emoji: "💻" },
-  { key: "garden", label: "Jardinería", emoji: "🌱" },
-  { key: "pill", label: "Medicina / Vitaminas", emoji: "💊" },
-];
-const HABIT_ICONS_BY_KEY = Object.fromEntries(HABIT_ICONS.map((i) => [i.key, i]));
-
-/* One symbol per habit: the person's chosen icon, falling back to the first
-   category's icon for habits created before symbols existed. The protected
-   "Dormir" habit gets the electric-blue treatment as its signature spot. */
-function HabitIcon({ habit, size = 14 }) {
-  const custom = HABIT_ICONS_BY_KEY[habit.icon];
-  const fallbackDef = CAT_BY_KEY[habit.categories?.[0]?.type];
-  const emoji = custom ? custom.emoji : (fallbackDef ? fallbackDef.emoji : "✨");
-  const blue = !!habit.isDefault;
-  return (
-    <span
-      title={habit.name}
-      style={{
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        width: size + 12, height: size + 12, borderRadius: 999, flex: "0 0 auto",
-        background: blue ? "var(--blue-soft)" : "var(--teal-soft)",
-        fontSize: size, lineHeight: 1,
-      }}
-    >
-      {emoji}
-    </span>
-  );
-}
-
-const ADDITIVE_TYPES = ["numero", "tiempo", "valor"];
-
-/* Progress display: "5/10 páginas" — sums as the person keeps registering */
-function formatValue(cat, val) {
-  const v = val === "" || val === undefined || val === null ? 0 : val;
-  if (cat.type === "booleano") return v ? "Sí" : "No";
-  if (cat.type === "escala") return `${v || 0}/${cat.meta}★`;
-  if (cat.type === "numero") return `${v || 0}/${cat.meta}`;
-  if (cat.type === "tiempo" || cat.type === "valor") return `${v || 0}/${cat.meta}${cat.unit ? " " + cat.unit : ""}`;
-  return `${v}`;
-}
-
-/* A single registro's own value, without the "/meta" comparison */
-function formatRaw(cat, val) {
-  const v = val === "" || val === undefined || val === null ? 0 : val;
-  if (cat.type === "booleano") return v ? "Sí" : "No";
-  if (cat.type === "escala") return `${v || 0}★`;
-  if (cat.type === "tiempo" || cat.type === "valor") return `${v || 0}${cat.unit ? " " + cat.unit : ""}`;
-  return `${v}`;
-}
-
-/* Today's total per category across every individual registro:
-   additive categories (número/tiempo/valor) sum across all of the day's
-   registros; escala/booleano use the most recent one (they don't accumulate). */
-function computeAggregate(categories, records) {
-  const agg = {};
-  categories.forEach((c) => {
-    if (ADDITIVE_TYPES.includes(c.type)) {
-      agg[c.type] = records.reduce((sum, r) => sum + (parseFloat(r.values[c.type]) || 0), 0);
-    } else {
-      const withVal = records.filter((r) => r.values[c.type] !== undefined && r.values[c.type] !== "");
-      agg[c.type] = withVal.length ? withVal[withVal.length - 1].values[c.type] : (c.type === "booleano" ? false : 0);
-    }
-  });
-  return agg;
-}
-
-function meetsGoal(cat, val) {
-  if (cat.type === "booleano") return val === cat.meta;
-  const num = parseFloat(val);
-  return !isNaN(num) && num >= parseFloat(cat.meta);
-}
-
-function metaSummary(c) {
-  if (c.type === "booleano") return `Meta: ${c.meta ? "Sí" : "No"}`;
-  if (c.type === "numero") return `Meta: ${c.meta}`;
-  if (c.type === "tiempo" || c.type === "valor") return `Meta: ${c.meta}${c.unit ? " " + c.unit : ""}`;
-  if (c.type === "escala") return `Meta: ${c.meta}★${c.label ? " (" + c.label + ")" : ""}`;
-  return `Meta: ${c.meta}`;
-}
-
-/* Lets the digital-crown wheels be swiped with a finger, not just clicked —
-   mouse wheel events don't fire on touch, so this was missing on mobile.
-   axis="y" for vertical wheels, axis="x" for the compact horizontal ones. */
-function useCrownSwipe(step, axis = "y") {
-  const ref = useRef({ pos: 0, acc: 0 });
-  const getPos = (e) => (axis === "y" ? e.touches[0].clientY : e.touches[0].clientX);
-  const onTouchStart = (e) => { ref.current.pos = getPos(e); ref.current.acc = 0; };
-  const onTouchMove = (e) => {
-    e.preventDefault();
-    const p = getPos(e);
-    const delta = axis === "y" ? ref.current.pos - p : p - ref.current.pos;
-    ref.current.pos = p;
-    ref.current.acc += delta;
-    const threshold = 20;
-    while (ref.current.acc >= threshold) { step(1); ref.current.acc -= threshold; }
-    while (ref.current.acc <= -threshold) { step(-1); ref.current.acc += threshold; }
-  };
-  return { onTouchStart, onTouchMove };
-}
-
-/* Compact digital-crown: sits at the same height as a regular input ("casilla"),
-   showing just the current value with small ‹ › arrows on either side — and the
-   whole control can still be swiped left/right with a finger to change it fast. */
-function CrownWheel({ values, value, onChange, labelFormatter, width = 56 }) {
-  const idx = Math.max(0, values.indexOf(value));
-  const step = (dir) => {
-    const next = (idx + dir + values.length) % values.length;
-    onChange(values[next]);
-  };
-  const swipe = useCrownSwipe(step, "x");
-  return (
-    <div
-      style={{ display: "inline-flex", alignItems: "center", gap: 3, userSelect: "none", touchAction: "none" }}
-      onWheel={(e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }}
-      {...swipe}
-    >
-      <button aria-label="anterior" onClick={() => step(-1)} style={compactCrownBtn}><Icon name="chevron-left" size={12} /></button>
-      <div style={{
-        minWidth: width, textAlign: "center", padding: "6px 6px", borderRadius: 8,
-        border: "1px solid var(--line)", background: "#fff",
-        fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
-      }}>
-        {labelFormatter(value)}
-      </div>
-      <button aria-label="siguiente" onClick={() => step(1)} style={compactCrownBtn}><Icon name="chevron-right" size={12} /></button>
-    </div>
-  );
-}
-const compactCrownBtn = {
-  width: 24, height: 30, flex: "0 0 auto", background: "var(--card)", border: "1px solid var(--line)",
-  borderRadius: 8, cursor: "pointer", color: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-};
-const crownBtnStyle = {
-  width: "100%", background: "transparent", border: "none", cursor: "pointer",
-  color: "var(--teal)", display: "flex", justifyContent: "center", padding: 2,
-};
-
-/* Single defined-time crown (hour + minute) — a fixed moment, not a range */
-function TimeCrown({ hh, mm, onChange }) {
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const mins = Array.from({ length: 12 }, (_, i) => i * 5);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <CrownWheel values={hours} value={hh} onChange={(v) => onChange(v, mm)} labelFormatter={pad2} />
-      <span style={{ fontSize: 20, color: "var(--ink-soft)", fontWeight: 600 }}>:</span>
-      <CrownWheel values={mins} value={mm} onChange={(v) => onChange(hh, v)} labelFormatter={pad2} />
-    </div>
-  );
-}
-
-/* Big, centered call-to-action — the main action of Tab 1 (one size down) */
-const bigAddBtn = {
-  display: "inline-flex", alignItems: "center", gap: 8, background: "var(--teal)", color: "#fff",
-  border: "none", borderRadius: 999, padding: "16px 28px", fontSize: 20, fontWeight: 700,
-  cursor: "pointer", boxShadow: "0 6px 18px rgba(62,107,95,0.25)",
-};
-const habitPillDashed = {
-  display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 999,
-  border: "1px dashed var(--amber)", background: "var(--amber-soft)", color: "var(--amber-ink)",
-  fontSize: 13.5, fontWeight: 500, cursor: "pointer",
-};
-
-/* Digital-crown style habit picker: rotate (scroll / arrows) to browse,
-   then press "Seleccionar" to move on to editing that habit's registro. */
-function HabitCrownPicker({ habits, onSelect, onNew }) {
-  const [idx, setIdx] = useState(0);
-  const n = habits.length;
-  const step = (dir) => { if (n > 0) setIdx((i) => (i + dir + n) % n); };
-  const swipe = useCrownSwipe(step);
-
-  if (n === 0) {
-    return (
-      <div style={{ textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 10 }}>Aún no hay hábitos guardados.</p>
-        <button onClick={onNew} style={habitPillDashed}><Icon name="plus" size={13} /> Nuevo Hábito</button>
-      </div>
-    );
-  }
-  const current = habits[idx % n];
-  const prevH = habits[(idx - 1 + n) % n];
-  const nextH = habits[(idx + 1) % n];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <div style={{ width: 230, userSelect: "none", touchAction: "none" }} onWheel={(e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }} {...swipe}>
-        <button onClick={() => step(-1)} style={crownBtnStyle} aria-label="anterior"><Icon name="chevron-up" size={15} /></button>
-        <div style={{ textAlign: "center", padding: "2px 0" }}>
-          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", opacity: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {prevH.name}
-          </div>
-          <div
-            style={{
-              width: "100%", fontSize: 19, fontWeight: 700, color: "var(--ink)", padding: "7px 4px",
-              borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)",
-              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--font-mono)",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}
-          >
-            <HabitIcon habit={current} size={15} /> {current.name}
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", opacity: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {nextH.name}
-          </div>
+  <div class="summary-wrap">
+    <div class="summary">
+      <p class="summary-title">Balance general</p>
+      <div class="summary-row">
+        <div class="stat stat-income">
+          <span class="stat-label">Ingresos</span>
+          <span class="stat-value" id="sumIngresos">$0</span>
         </div>
-        <button onClick={() => step(1)} style={crownBtnStyle} aria-label="siguiente"><Icon name="chevron-down" size={15} /></button>
-      </div>
-      <button onClick={() => onSelect(current.id)} style={primaryBtnBig}><Icon name="check" size={15} /> Seleccionar</button>
-      <button onClick={onNew} style={habitPillDashed}><Icon name="plus" size={13} /> Nuevo Hábito</button>
-    </div>
-  );
-}
-
-/* Month calendar (Monday-first) used as a date picker popover */
-function MiniCalendar({ selected, onSelect, onClose }) {
-  const sel = keyToDate(selected);
-  const [cursor, setCursor] = useState(new Date(sel.getFullYear(), sel.getMonth(), 1));
-  const weeks = monthMatrix(cursor.getFullYear(), cursor.getMonth());
-  const tKey = todayKey();
-  return (
-    <div style={{
-      position: "absolute", zIndex: 40, top: "calc(100% + 6px)", left: 0,
-      background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12,
-      padding: 12, boxShadow: "0 8px 24px rgba(35,40,31,0.14)", width: 258,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <button style={iconBtnSm} onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}><Icon name="chevron-left" size={15} /></button>
-        <span style={{ fontSize: 13, fontWeight: 600, textTransform: "capitalize", fontFamily: "var(--font-mono)" }}>
-          {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
-        </span>
-        <button style={iconBtnSm} onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}><Icon name="chevron-right" size={15} /></button>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
-        {WEEKDAYS.map((w) => (
-          <div key={w} style={{ textAlign: "center", fontSize: 10.5, color: "var(--ink-soft)", fontWeight: 600 }}>{w}</div>
-        ))}
-      </div>
-      {weeks.map((week, wi) => (
-        <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
-          {week.map((d, di) => {
-            if (!d) return <div key={di} />;
-            const k = dateKey(d);
-            const isSel = k === selected;
-            const isToday = k === tKey;
-            return (
-              <button
-                key={di}
-                onClick={() => { onSelect(k); onClose(); }}
-                style={{
-                  aspectRatio: "1", border: "none", borderRadius: 8, cursor: "pointer",
-                  fontSize: 12.5, fontFamily: "var(--font-mono)",
-                  background: isSel ? "var(--teal)" : "transparent",
-                  color: isSel ? "#fff" : isToday ? "var(--amber-ink)" : "var(--ink)",
-                  fontWeight: isSel || isToday ? 700 : 400,
-                  outline: isToday && !isSel ? "1px solid var(--amber)" : "none",
-                }}
-              >{d.getDate()}</button>
-            );
-          })}
+        <div class="divider"></div>
+        <div class="stat stat-balance">
+          <span class="stat-label">Saldo</span>
+          <span class="stat-value" id="sumRemanente">$0</span>
         </div>
-      ))}
-    </div>
-  );
-}
-const iconBtnSm = { background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-soft)", display: "flex" };
-
-function Stars({ value, onChange, max = 10, disabled }) {
-  return (
-    <div style={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-      {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
-        <button
-          key={n}
-          disabled={disabled}
-          onClick={() => onChange(n)}
-          style={{
-            background: "none", border: "none", cursor: disabled ? "default" : "pointer", padding: 1,
-            fontSize: 16, lineHeight: 1, color: n <= (value || 0) ? "var(--amber)" : "var(--line)",
-          }}
-        >
-          {n <= (value || 0) ? "★" : "☆"}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Tab 1 — Registro diario                                                */
-/* ---------------------------------------------------------------------- */
-
-function TabRegistro({ habits, entries, commitEntry, editRecord, removeRecord, rows, goToCreate }) {
-  return (
-    <div style={{ padding: "0 4px" }}>
-      <ActivityAdder habits={habits} entries={entries} onCommit={commitEntry} goToCreate={goToCreate} />
-
-      <RegistroTable habits={habits} entries={entries} rows={rows} editRecord={editRecord} removeRecord={removeRecord} />
-    </div>
-  );
-}
-
-/* Every individual registro as one row — like a spreadsheet: Hábito, Meta,
-   Hora, Fecha, Suma (running total up to and including that row for
-   additive categories), and a pencil to edit that specific row. Editing a
-   row only changes that row; every later row's running total updates too,
-   since it's recalculated from the full history each render. */
-function RegistroTable({ habits, entries, rows, editRecord, removeRecord }) {
-  const [editingKey, setEditingKey] = useState(null);
-
-  const flat = [];
-  rows.forEach((group) => {
-    const habit = habits.find((h) => h.id === group.habitId);
-    if (!habit) return;
-    const records = entries[`${habit.id}__${group.date}`] || [];
-    const running = {};
-    habit.categories.forEach((c) => { if (ADDITIVE_TYPES.includes(c.type)) running[c.type] = 0; });
-    records.forEach((r) => {
-      habit.categories.forEach((c) => {
-        if (ADDITIVE_TYPES.includes(c.type)) running[c.type] += parseFloat(r.values[c.type]) || 0;
-      });
-      flat.push({
-        key: `${habit.id}__${group.date}__${r.id}`,
-        habit, date: group.date, record: r,
-        sumaSoFar: { ...running },
-      });
-    });
-  });
-
-  flat.sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    return b.record.savedAt.localeCompare(a.record.savedAt);
-  });
-
-  if (flat.length === 0) {
-    return (
-      <p style={{ color: "var(--ink-soft)", fontSize: 13.5, textAlign: "center", padding: "24px 0" }}>
-        Toca "Agregar actividad" para registrar tu día.
-      </p>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 0.6fr 0.7fr 1.1fr 22px 22px", gap: 8, padding: "0 10px", marginBottom: 6 }}>
-        {["Hábito", "Meta", "Hora", "Fecha", "Suma", "", ""].map((h, i) => (
-          <div key={i} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--ink-soft)", fontWeight: 700 }}>{h}</div>
-        ))}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {flat.map((item) => (
-          editingKey === item.key ? (
-            <div key={item.key} style={{ background: "var(--card)", border: "1px solid var(--teal)", borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                <HabitIcon habit={item.habit} size={11} /> {item.habit.name} · {fmtDate(item.date)} · {item.record.savedAt}
-              </div>
-              <RegistroForm
-                habit={item.habit}
-                mode="edit"
-                initialValues={item.record.values}
-                onSave={(vals) => { editRecord(item.habit.id, item.date, item.record.id, vals); setEditingKey(null); }}
-                onCancel={() => setEditingKey(null)}
-              />
-            </div>
-          ) : (
-            <div key={item.key} style={{
-              display: "grid", gridTemplateColumns: "1.3fr 1fr 0.6fr 0.7fr 1.1fr 22px 22px", gap: 8, alignItems: "center",
-              background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, padding: "9px 10px",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                <HabitIcon habit={item.habit} size={11} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.habit.name}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {item.habit.categories.map((c) => (
-                  <span key={c.type} style={{ fontSize: 11, color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>{metaLine(c)}</span>
-                ))}
-              </div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>{item.record.savedAt}</div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>{fmtDateShort(item.date)}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {item.habit.categories.map((c) => {
-                  const val = ADDITIVE_TYPES.includes(c.type) ? item.sumaSoFar[c.type] : item.record.values[c.type];
-                  return (
-                    <span key={c.type} style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", fontFamily: "var(--font-mono)" }}>
-                      {formatValue(c, val)}
-                    </span>
-                  );
-                })}
-              </div>
-              <button onClick={() => setEditingKey(item.key)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)" }} aria-label="editar registro">
-                <Icon name="pencil" size={14} />
-              </button>
-              <button
-                onClick={() => { if (window.confirm("¿Eliminar este registro?")) removeRecord(item.habit.id, item.date, item.record.id); }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)" }} aria-label="eliminar registro"
-              >
-                <Icon name="trash" size={14} />
-              </button>
-            </div>
-          )
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* Header CTA: rotate the crown to browse habits, "Seleccionar" transitions
-   into editing that habit's registro (fecha + valores) before it's saved. */
-function ActivityAdder({ habits, entries, onCommit, goToCreate }) {
-  const [open, setOpen] = useState(false);
-  const [phase, setPhase] = useState("browse"); // 'browse' | 'edit'
-  const [selectedId, setSelectedId] = useState(null);
-  const [date, setDate] = useState(todayKey());
-  const [calOpen, setCalOpen] = useState(false);
-
-  const togglePanel = () => {
-    setOpen((o) => {
-      const next = !o;
-      if (next) { setPhase("browse"); setDate(todayKey()); setCalOpen(false); }
-      return next;
-    });
-  };
-
-  const currentHabit = habits.find((h) => h.id === selectedId) || null;
-  const existingRecords = currentHabit ? (entries[`${currentHabit.id}__${date}`] || []) : [];
-  const aggregate = currentHabit ? computeAggregate(currentHabit.categories, existingRecords) : {};
-
-  const handleSave = (values) => {
-    onCommit(currentHabit.id, date, values);
-    setOpen(false);
-    setPhase("browse");
-  };
-
-  return (
-    <>
-      <div style={{ textAlign: "center", margin: "6px 0 16px" }}>
-        <button onClick={togglePanel} style={bigAddBtn}>
-          <Icon name="plus" size={20} /> Agregar actividad
-        </button>
-      </div>
-
-      {open && phase === "browse" && (
-        <div style={{ marginBottom: 22 }}>
-          <HabitCrownPicker
-            habits={habits}
-            onSelect={(habitId) => { setSelectedId(habitId); setPhase("edit"); }}
-            onNew={() => { setOpen(false); goToCreate(); }}
-          />
-        </div>
-      )}
-
-      {open && phase === "edit" && currentHabit && (
-        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: "14px 16px", marginBottom: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <HabitIcon habit={currentHabit} />
-              <span style={{ fontWeight: 600, fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentHabit.name}</span>
-            </div>
-            <button onClick={() => setPhase("browse")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", fontSize: 12, flex: "0 0 auto" }}>
-              Cambiar hábito
-            </button>
-          </div>
-
-          <div style={{ position: "relative", marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>Fecha</div>
-            <button onClick={() => setCalOpen((o) => !o)} style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 8,
-              border: "1px solid var(--line)", background: "var(--paper)", cursor: "pointer", fontSize: 12.5, color: "var(--ink)",
-              fontFamily: "var(--font-mono)",
-            }}>
-              <Icon name="calendar" size={13} /> {fmtDate(date)}
-            </button>
-            {calOpen && <MiniCalendar selected={date} onSelect={setDate} onClose={() => setCalOpen(false)} />}
-          </div>
-
-          <RegistroForm habit={currentHabit} mode="add" aggregate={aggregate} onSave={handleSave} onCancel={() => setOpen(false)} />
-        </div>
-      )}
-    </>
-  );
-}
-
-/* Reusable per-registro editor. mode="add" creates a brand-new registro (the
-   "llevas X/meta" hint and the goal shortcut account for today's existing
-   total); mode="edit" edits one existing registro in place — its value simply
-   replaces the old one, and the day's total is recalculated automatically. */
-function RegistroForm({ habit, mode, initialValues, aggregate, onSave, onCancel }) {
-  const buildBlank = () => {
-    const v = {};
-    habit.categories.forEach((c) => { v[c.type] = c.type === "booleano" ? false : ""; });
-    return v;
-  };
-  const [values, setValues] = useState(initialValues || buildBlank());
-  const [locked, setLocked] = useState(false);
-
-  const applyGoal = (checked) => {
-    setLocked(checked);
-    if (checked) {
-      const v = {};
-      habit.categories.forEach((c) => {
-        if (mode === "add" && ADDITIVE_TYPES.includes(c.type)) {
-          const already = aggregate ? parseFloat(aggregate[c.type]) || 0 : 0;
-          v[c.type] = Math.max(0, parseFloat(c.meta) - already);
-        } else {
-          v[c.type] = c.meta;
-        }
-      });
-      setValues(v);
-    }
-  };
-
-  return (
-    <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
-        {habit.categories.map((c) => (
-          <CategoryEditor key={c.type} cat={c} value={values[c.type]} locked={locked}
-            already={mode === "add" ? (aggregate ? aggregate[c.type] : 0) : null}
-            onChange={(v) => setValues({ ...values, [c.type]: v })} />
-        ))}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink-soft)", cursor: "pointer" }}>
-          <input type="checkbox" checked={locked} onChange={(e) => applyGoal(e.target.checked)} style={{ accentColor: "var(--teal)", width: 15, height: 15 }} />
-          Cumplí la meta
-        </label>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          {onCancel && <button onClick={onCancel} style={secondaryBtn}>Cancelar</button>}
-          <button onClick={() => onSave(values)} style={{
-            background: "var(--teal)", color: "#fff", border: "none", borderRadius: 999,
-            padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6,
-          }}>
-            <Icon name="check" size={14} /> Guardar
-          </button>
+        <div class="divider"></div>
+        <div class="stat stat-expense">
+          <span class="stat-label">Gastos</span>
+          <span class="stat-value" id="sumGastos">$0</span>
         </div>
       </div>
     </div>
-  );
-}
+    <div class="ticket-edge" id="ticketEdge"></div>
+  </div>
 
-function CategoryEditor({ cat, value, locked, already, onChange }) {
-  const def = CAT_BY_KEY[cat.type];
-  const name = cat.label || def.label;
-  const isAdditive = ADDITIVE_TYPES.includes(cat.type);
-  const showHint = isAdditive && already !== null && already !== undefined;
-  const soFar = parseFloat(already) || 0;
-  return (
-    <div>
-      <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4, display: "flex", alignItems: "center", gap: 4 }}>
-        <span>{def.emoji}</span> {name} · meta {cat.type === "booleano" ? (cat.meta ? "Sí" : "No") : `${cat.meta}${cat.unit ? " " + cat.unit : ""}`}
+  <main class="content">
+
+    <!-- REGISTRAR -->
+    <section class="view active" id="view-registrar">
+      <p class="section-label">Tipo de movimiento</p>
+      <div class="segmented">
+        <button class="seg-btn active type-gasto" id="segGasto" data-type="gasto">Gasto</button>
+        <button class="seg-btn type-ingreso" id="segIngreso" data-type="ingreso">Ingreso</button>
       </div>
-      {cat.type === "numero" && (
-        <input type="number" disabled={locked} value={value} onChange={(e) => onChange(e.target.value)} placeholder="valor" style={inputSm} />
-      )}
-      {cat.type === "tiempo" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="number" disabled={locked} value={value} onChange={(e) => onChange(e.target.value)} placeholder="valor" style={{ ...inputSm, width: 70 }} />
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{cat.unit}</span>
-        </div>
-      )}
-      {cat.type === "escala" && <Stars value={Number(value) || 0} onChange={onChange} disabled={locked} />}
-      {cat.type === "valor" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="number" disabled={locked} value={value} onChange={(e) => onChange(e.target.value)} placeholder="valor" style={{ ...inputSm, width: 70 }} />
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{cat.unit}</span>
-        </div>
-      )}
-      {cat.type === "booleano" && (
-        <div style={{ display: "flex", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", width: 110 }}>
-          <button disabled={locked} onClick={() => onChange(true)} style={halfBtn(value === true)}>Sí</button>
-          <button disabled={locked} onClick={() => onChange(false)} style={halfBtn(value === false)}>No</button>
-        </div>
-      )}
-      {showHint && (
-        <div style={{ fontSize: 10.5, color: "var(--ink-soft)", marginTop: 3 }}>
-          llevas {soFar}/{cat.meta}{cat.unit ? " " + cat.unit : ""}
-        </div>
-      )}
-    </div>
-  );
-}
-const inputSm = {
-  width: 70, padding: "6px 8px", borderRadius: 8, border: "1px solid var(--line)",
-  background: "#fff", fontSize: 13, fontFamily: "var(--font-mono)", color: "var(--ink)",
-};
-function halfBtn(active) {
-  return { flex: 1, padding: "6px 0", border: "none", cursor: "pointer", background: active ? "var(--teal)" : "#fff", color: active ? "#fff" : "var(--ink)", fontSize: 12.5, fontWeight: 600 };
-}
 
-/* ---------------------------------------------------------------------- */
-/*  Tab 2 — Crear hábito                                                   */
-/* ---------------------------------------------------------------------- */
-
-function TabCrear({ onCreate, onUpdate, onDelete, onResetAll, habits }) {
-  const [open, setOpen] = useState(false);
-  const [editingHabitId, setEditingHabitId] = useState(null);
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState(null);
-  const [cats, setCats] = useState([]);
-  const [metas, setMetas] = useState({});
-  const [freq, setFreq] = useState("Diario");
-  const [days, setDays] = useState([]);
-  const [ph, setPh] = useState(8); const [pm, setPm] = useState(0);
-  const [error, setError] = useState("");
-
-  const toggleCat = (key) => setCats((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
-  const setMeta = (key, patch) => setMetas((m) => ({ ...m, [key]: { ...m[key], ...patch } }));
-  const toggleDay = (i) => setDays((prev) => (prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i]));
-
-  const reset = () => {
-    setEditingHabitId(null);
-    setName(""); setIcon(null); setCats([]); setMetas({}); setFreq("Diario"); setDays([]);
-    setPh(8); setPm(0); setError("");
-  };
-
-  const openEdit = (h) => {
-    setEditingHabitId(h.id);
-    setName(h.name);
-    setIcon(h.icon || null);
-    setCats(h.categories.map((c) => c.type));
-    const m = {};
-    h.categories.forEach((c) => {
-      m[c.type] = { meta: c.type === "booleano" ? c.meta : String(c.meta), unit: c.unit, label: c.label };
-    });
-    setMetas(m);
-    setFreq(h.frequency);
-    setDays(h.days || []);
-    const [hh, mm] = (h.schedule?.time || "08:00").split(":").map(Number);
-    setPh(hh || 0); setPm(mm || 0);
-    setError("");
-    setOpen(true);
-  };
-
-  const submit = () => {
-    if (!name.trim()) { setError("Escribe un nombre para el hábito."); return; }
-    if (cats.length === 0) { setError("Selecciona al menos una categoría."); return; }
-    for (const c of cats) {
-      if (c !== "booleano" && (metas[c] == null || metas[c].meta === undefined || metas[c].meta === "")) {
-        setError(`Define la meta para la categoría "${CAT_BY_KEY[c].label}".`);
-        return;
-      }
-      if ((c === "tiempo" || c === "valor") && !metas[c].unit) {
-        setError(`Define la unidad para la categoría "${CAT_BY_KEY[c].label}".`);
-        return;
-      }
-    }
-    const existing = habits.find((h) => h.id === editingHabitId);
-    const habit = {
-      id: editingHabitId || `h_${Date.now()}`,
-      name: name.trim(),
-      icon: icon || undefined,
-      categories: cats.map((c) => {
-        const m = metas[c] || {};
-        const cat = { type: c };
-        cat.meta = c === "booleano" ? (m.meta === false ? false : true) : parseFloat(m.meta);
-        if (c === "tiempo") cat.unit = m.unit || "minutos";
-        if (c === "valor") cat.unit = m.unit || "";
-        if (c === "escala" && m.label) cat.label = m.label;
-        return cat;
-      }),
-      frequency: freq,
-      days: freq !== "Diario" ? days : [],
-      schedule: { time: `${pad2(ph)}:${pad2(pm)}` },
-      ...(existing?.isDefault ? { isDefault: true } : {}),
-    };
-    if (editingHabitId) onUpdate(habit); else onCreate(habit);
-    reset();
-    setOpen(false);
-  };
-
-  return (
-    <div style={{ padding: "0 4px" }}>
-      {!open && (
-        <div style={{ textAlign: "center" }}>
-          <button onClick={() => setOpen(true)} style={primaryBtnBig}>
-            <Icon name="plus" size={17} /> Nuevo hábito
-          </button>
-        </div>
-      )}
-
-      {open && (
-        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: 18, marginTop: 16 }}>
-          {editingHabitId && (
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--teal-ink)", marginBottom: 10 }}>Editando hábito</div>
-          )}
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 220px" }}>
-              <FieldLabel>Nombre del hábito</FieldLabel>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="p. ej. Dormir, Leer, Correr" style={{ ...inputSm, width: "100%" }} />
-            </div>
-            <div style={{ flex: "1 1 220px" }}>
-              <FieldLabel>Categorías</FieldLabel>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {CATEGORY_DEFS.map((c) => {
-                  const active = cats.includes(c.key);
-                  return (
-                    <button key={c.key} onClick={() => toggleCat(c.key)} style={{
-                      display: "flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 999,
-                      border: active ? "1px solid var(--teal)" : "1px solid var(--line)",
-                      background: active ? "var(--teal-soft)" : "#fff", color: active ? "var(--teal-ink)" : "var(--ink)",
-                      fontSize: 12.5, cursor: "pointer", fontWeight: 500,
-                    }}>
-                      <span>{c.emoji}</span> {c.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <FieldLabel>Símbolo</FieldLabel>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {HABIT_ICONS.map((opt) => {
-                const active = icon === opt.key;
-                return (
-                  <button key={opt.key} onClick={() => setIcon(active ? null : opt.key)} title={opt.label} style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 34, height: 34, borderRadius: 10,
-                    border: active ? "1px solid var(--teal)" : "1px solid var(--line)",
-                    background: active ? "var(--teal-soft)" : "#fff", color: active ? "var(--teal-ink)" : "var(--ink-soft)",
-                    cursor: "pointer",
-                  }}>
-                    <span style={{ fontSize: 16 }}>{opt.emoji}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {cats.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <FieldLabel>Meta y frecuencia</FieldLabel>
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
-                {cats.map((c) => (
-                  <MetaEditor key={c} catKey={c} meta={metas[c]} onChange={(patch) => setMeta(c, patch)} />
-                ))}
-                <div>
-                  <FieldSub>Frecuencia</FieldSub>
-                  <select value={freq} onChange={(e) => setFreq(e.target.value)} style={{ ...inputSm, width: 130 }}>
-                    {FREQS.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {freq !== "Diario" && (
-                <div style={{ marginTop: 12 }}>
-                  <FieldSub>Días (opcional, para personalizar)</FieldSub>
-                  <div style={{ display: "flex", gap: 5 }}>
-                    {WEEKDAYS.map((w, i) => {
-                      const active = days.includes(i);
-                      return (
-                        <button key={i} onClick={() => toggleDay(i)} style={{
-                          width: 28, height: 28, borderRadius: "50%",
-                          border: active ? "1px solid var(--teal)" : "1px solid var(--line)",
-                          background: active ? "var(--teal)" : "#fff", color: active ? "#fff" : "var(--ink-soft)",
-                          fontSize: 11.5, fontWeight: 700, cursor: "pointer",
-                        }}>{w}</button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div style={{ marginTop: 16 }}>
-            <FieldLabel>Horario preferido</FieldLabel>
-            <TimeCrown hh={ph} mm={pm} onChange={(h, m) => { setPh(h); setPm(m); }} />
-          </div>
-
-          {error && <p style={{ color: "var(--red)", fontSize: 12.5, marginTop: 12 }}>{error}</p>}
-
-          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-            <button onClick={submit} style={primaryBtnBig}>
-              <Icon name="check" size={16} /> {editingHabitId ? "Guardar cambios" : "Guardar hábito"}
-            </button>
-            <button onClick={() => { reset(); setOpen(false); }} style={secondaryBtn}>Cancelar</button>
-          </div>
-        </div>
-      )}
-
-      <HabitsList habits={habits} onEdit={openEdit} onDelete={onDelete} />
-
-      <div style={{ marginTop: 30, textAlign: "center" }}>
-        <button
-          onClick={() => { if (window.confirm("¿Borrar todos los hábitos y registros? Esta acción no se puede deshacer.")) onResetAll(); }}
-          style={{ background: "none", border: "none", color: "var(--ink-soft)", fontSize: 11.5, cursor: "pointer", textDecoration: "underline" }}
-        >
-          Restablecer datos de la aplicación
-        </button>
+      <p class="section-label">Monto</p>
+      <div class="amount-box">
+        <span class="amount-sign">$</span>
+        <input type="number" id="amountInput" inputmode="numeric" pattern="[0-9]*" placeholder="0" min="0" step="1">
       </div>
-    </div>
-  );
-}
 
-function HabitsList({ habits, onEdit, onDelete }) {
-  if (!habits.length) return null;
-  return (
-    <div style={{ marginTop: 26 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-        <div style={{ flex: 1, fontSize: 11, color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Hábito</div>
-        <div style={{ width: 130, textAlign: "right", fontSize: 11, color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Meta</div>
-        <div style={{ width: 40 }} />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {habits.map((h) => (
-          <div key={h.id} style={{
-            display: "flex", alignItems: "flex-start", gap: 12,
-            background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 14px",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1, paddingTop: 1 }}>
-              <HabitIcon habit={h} size={12} />
-              <span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
-              {h.isDefault && (
-                <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--blue-ink)", background: "var(--blue-soft)", borderRadius: 999, padding: "2px 7px", flex: "0 0 auto" }}>
-                  fijo
-                </span>
-              )}
-            </div>
-            <div style={{ width: 130, textAlign: "right", display: "flex", flexDirection: "column", gap: 2 }}>
-              {h.categories.map((c) => (
-                <span key={c.type} style={{ fontSize: 11.5, color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>{metaLine(c)}</span>
-              ))}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, flex: "0 0 auto" }}>
-              <button onClick={() => onEdit(h)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)" }} aria-label="editar hábito">
-                <Icon name="pencil" size={14} />
-              </button>
-              {!h.isDefault && (
-                <button
-                  onClick={() => { if (window.confirm(`¿Eliminar el hábito "${h.name}"? Esta acción no se puede deshacer.`)) onDelete(h.id); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)" }} aria-label="eliminar hábito"
-                >
-                  <Icon name="trash" size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+      <p class="section-label">Categoría</p>
+      <div class="chips" id="chipsWrap"></div>
+      <div id="otrosListWrap"></div>
 
-function metaLine(c) {
-  if (c.type === "booleano") return c.meta ? "Sí" : "No";
-  if (c.type === "numero") return `${c.meta}`;
-  if (c.type === "tiempo" || c.type === "valor") return `${c.meta}${c.unit ? " " + c.unit : ""}`;
-  if (c.type === "escala") return `${c.meta}★${c.label ? " (" + c.label + ")" : ""}`;
-  return `${c.meta}`;
-}
-
-function FieldLabel({ children }) {
-  return <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{children}</div>;
-}
-function FieldSub({ children }) {
-  return <div style={{ fontSize: 11, color: "var(--ink-soft)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>{children}</div>;
-}
-
-function MetaEditor({ catKey, meta, onChange }) {
-  const label = CAT_BY_KEY[catKey].label;
-
-  if (catKey === "booleano") {
-    const val = meta?.meta === false ? false : true;
-    return (
-      <div>
-        <FieldSub>{label}</FieldSub>
-        <div style={{ display: "flex", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", width: 110 }}>
-          <button onClick={() => onChange({ meta: true })} style={halfBtn(val === true)}>Sí</button>
-          <button onClick={() => onChange({ meta: false })} style={halfBtn(val === false)}>No</button>
+      <div class="field-row">
+        <div class="field">
+          <label for="noteInput">Nota (opcional)</label>
+          <input type="text" id="noteInput" maxlength="40" placeholder="Ej. Café con Ana">
+        </div>
+        <div class="field" style="max-width:130px;">
+          <label for="dateInput">Fecha</label>
+          <input type="date" id="dateInput">
         </div>
       </div>
-    );
-  }
-  if (catKey === "numero") {
-    return (
-      <div>
-        <FieldSub>{label}</FieldSub>
-        <input type="number" value={meta?.meta ?? ""} onChange={(e) => onChange({ meta: e.target.value })} style={inputSm} placeholder="0" />
+
+      <button class="btn-submit type-gasto" id="submitBtn">Registrar gasto</button>
+
+      <p class="section-label">Hoy</p>
+      <div class="today-list" id="todayList"></div>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section class="view" id="view-historial">
+      <div class="month-nav">
+        <button id="prevMonth" aria-label="Mes anterior">‹</button>
+        <span class="month-label" id="monthLabel">—</span>
+        <button id="nextMonth" aria-label="Mes siguiente">›</button>
       </div>
-    );
-  }
-  if (catKey === "escala") {
-    return (
-      <div>
-        <FieldSub>{label}</FieldSub>
-        <input type="text" value={meta?.label ?? ""} onChange={(e) => onChange({ label: e.target.value })}
-          placeholder="¿Qué mides? ej. intensidad" style={{ ...inputSm, width: 168, marginBottom: 6 }} />
-        <div><Stars value={Number(meta?.meta) || 0} onChange={(v) => onChange({ meta: v })} /></div>
-      </div>
-    );
-  }
-  if (catKey === "tiempo") {
-    const unit = meta?.unit ?? "minutos";
-    const values = unit === "horas" ? Array.from({ length: 25 }, (_, i) => i) : Array.from({ length: 37 }, (_, i) => i * 5);
-    const raw = Number(meta?.meta) || 0;
-    const val = values.includes(raw) ? raw : values.reduce((a, b) => (Math.abs(b - raw) < Math.abs(a - raw) ? b : a), values[0]);
-    return (
-      <div>
-        <FieldSub>{label}</FieldSub>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-          <CrownWheel values={values} value={val} onChange={(v) => onChange({ meta: v })} labelFormatter={(v) => String(v)} width={56} />
-          <select value={unit} onChange={(e) => onChange({ unit: e.target.value })} style={{ ...inputSm, width: 95 }}>
-            <option value="minutos">minutos</option>
-            <option value="horas">horas</option>
-          </select>
-        </div>
-      </div>
-    );
-  }
-  if (catKey === "valor") {
-    return (
-      <div>
-        <FieldSub>{label}</FieldSub>
-        <div style={{ display: "flex", gap: 6 }}>
-          <input type="number" value={meta?.meta ?? ""} onChange={(e) => onChange({ meta: e.target.value })} style={{ ...inputSm, width: 70 }} placeholder="0" />
-          <input type="text" value={meta?.unit ?? ""} onChange={(e) => onChange({ unit: e.target.value })} style={{ ...inputSm, width: 75 }} placeholder="km, kg…" />
-        </div>
-      </div>
-    );
-  }
-  return null;
-}
+      <p class="month-summary" id="monthSummary"></p>
 
-const primaryBtnBig = {
-  display: "inline-flex", alignItems: "center", gap: 8, background: "var(--teal)", color: "#fff",
-  border: "none", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer",
-};
-const secondaryBtn = {
-  background: "transparent", color: "var(--ink-soft)", border: "1px solid var(--line)",
-  borderRadius: 999, padding: "11px 18px", fontSize: 14, cursor: "pointer",
-};
-
-/* ---------------------------------------------------------------------- */
-/*  Tab 3 — Seguimiento / estadísticas                                     */
-/* ---------------------------------------------------------------------- */
-
-const FREQ_PERIODS = ["Semana", "Quincena", "Mes"];
-
-/* The list of date-keys (oldest → newest, ending today) that the selected
-   period covers. "Mes" is the current calendar month so far. */
-function periodDayKeys(period, now) {
-  const keys = [];
-  if (period === "Mes") {
-    for (let d = 1; d <= now.getDate(); d++) keys.push(`${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(d)}`);
-    return keys;
-  }
-  const n = period === "Quincena" ? 15 : 7;
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    keys.push(dateKey(d));
-  }
-  return keys;
-}
-
-function dayColLabel(k, period) {
-  const d = keyToDate(k);
-  if (period === "Semana") return WEEKDAYS[mondayIndex(d)];
-  return String(d.getDate());
-}
-
-function habitDoneOnDay(habit, entries, k) {
-  const records = entries[`${habit.id}__${k}`];
-  if (!records || !records.length) return null; // no data that day
-  const aggregate = computeAggregate(habit.categories, records);
-  return habit.categories.every((c) => meetsGoal(c, aggregate[c.type]));
-}
-
-/* General stats always consider the FULL set of habits — they describe
-   overall performance, independent of which single habit is selected. */
-function computeGeneralStats(allHabits, entries, days) {
-  const expectedFor = (freq, n) => {
-    if (freq === "Diario") return n;
-    if (freq === "Semanal") return Math.max(1, Math.ceil(n / 7));
-    if (freq === "Quincenal") return Math.max(1, Math.ceil(n / 15));
-    return 1;
-  };
-
-  let completed = 0, expected = 0, logged = 0;
-  allHabits.forEach((h) => {
-    expected += expectedFor(h.frequency, days.length);
-    days.forEach((k) => {
-      const done = habitDoneOnDay(h, entries, k);
-      if (done !== null) { logged += 1; if (done) completed += 1; }
-    });
-  });
-  const completionRate = expected > 0 ? Math.min(100, Math.round((completed / expected) * 100)) : 0;
-  const consistency = (allHabits.length * days.length) > 0 ? Math.round((logged / (allHabits.length * days.length)) * 100) : 0;
-
-  const rate = (subset) => {
-    let c = 0, e = 0;
-    allHabits.forEach((h) => subset.forEach((k) => {
-      e += 1;
-      const done = habitDoneOnDay(h, entries, k);
-      if (done) c += 1;
-    }));
-    return e > 0 ? c / e : 0;
-  };
-  const mid = Math.floor(days.length / 2);
-  const earlier = days.slice(0, mid);
-  const later = days.slice(days.length - mid);
-  let trend = "estable";
-  if (mid > 0) {
-    const diff = rate(later) - rate(earlier);
-    if (diff > 0.05) trend = "sube";
-    else if (diff < -0.05) trend = "baja";
-  }
-
-  const counts = {};
-  allHabits.forEach((h) => { counts[h.frequency] = (counts[h.frequency] || 0) + 1; });
-  const freqLabel = Object.entries(counts).map(([f, n]) => `${n} ${f.toLowerCase()}`).join(", ") || "—";
-
-  return { completionRate, consistency, trend, freqLabel };
-}
-
-/* Specific stats are computed per single habit over the selected period. */
-function computeSpecificStats(habit, entries, days) {
-  const savedMinutes = [];
-  const doneFlags = days.map((k) => {
-    const records = entries[`${habit.id}__${k}`];
-    if (records && records.length) records.forEach((r) => { if (r.savedAt) savedMinutes.push(timeToMinutes(r.savedAt)); });
-    return habitDoneOnDay(habit, entries, k) === true;
-  });
-
-  let streak = 0;
-  for (let i = doneFlags.length - 1; i >= 0; i--) { if (doneFlags[i]) streak += 1; else break; }
-  const missed = doneFlags.filter((d) => !d).length;
-
-  let stdDevLabel = "—";
-  if (savedMinutes.length >= 2) {
-    const mean = savedMinutes.reduce((a, b) => a + b, 0) / savedMinutes.length;
-    const variance = savedMinutes.reduce((a, b) => a + (b - mean) ** 2, 0) / savedMinutes.length;
-    const sd = Math.sqrt(variance);
-    stdDevLabel = sd < 60 ? `${Math.round(sd)} min` : `${(sd / 60).toFixed(1)} h`;
-  }
-
-  return { streak, missed, stdDevLabel };
-}
-
-/* Minimal dropdown: a button showing the current choice, opening a small
-   list below it — used for both the habit and the frequency selectors. */
-function SimpleDropdown({ options, value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const current = options.find((o) => o.value === value);
-  return (
-    <div style={{ position: "relative", flex: 1 }}>
-      <button onClick={() => setOpen((o) => !o)} style={{
-        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-        padding: "10px 14px", borderRadius: 12, border: "1px solid var(--line)", background: "var(--card)",
-        color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer",
-      }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{current ? current.label : "—"}</span>
-        <Icon name="chevron-down" size={14} color="var(--ink-soft)" />
-      </button>
-      {open && (
-        <div style={{
-          position: "absolute", zIndex: 30, top: "calc(100% + 6px)", left: 0, right: 0,
-          background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12, padding: 6,
-          boxShadow: "0 8px 24px rgba(35,40,31,0.14)", maxHeight: 240, overflowY: "auto",
-        }}>
-          {options.map((o) => (
-            <button key={String(o.value)} onClick={() => { onChange(o.value); setOpen(false); }} style={{
-              width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
-              background: o.value === value ? "var(--teal-soft)" : "transparent", cursor: "pointer",
-              fontSize: 13, fontWeight: o.value === value ? 700 : 400, color: "var(--ink)",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {o.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* Habits as rows, days as columns — a dot lights up teal where the habit
-   was completed that day, amber where it was logged but fell short. */
-function HabitHeatmap({ habitList, entries, days, period }) {
-  if (habitList.length === 0) return null;
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: "14px 16px", marginBottom: 20 }}>
-      <div style={{ display: "flex" }}>
-        <div style={{ flex: "0 0 96px" }}>
-          <div style={{ height: 20 }} />
-          {habitList.map((h) => (
-            <div key={h.id} style={{ height: 22, display: "flex", alignItems: "center", fontSize: 11, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {h.name}
-            </div>
-          ))}
-        </div>
-        <div style={{ flex: 1, overflowX: "auto" }} className="no-scrollbar">
-          <div style={{ display: "flex", gap: 3, height: 20 }}>
-            {days.map((k) => (
-              <div key={k} style={{ width: 16, flex: "0 0 auto", fontSize: 9, textAlign: "center", color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
-                {dayColLabel(k, period)}
-              </div>
-            ))}
-          </div>
-          {habitList.map((h) => (
-            <div key={h.id} style={{ display: "flex", gap: 3, height: 22, alignItems: "center" }}>
-              {days.map((k) => {
-                const done = habitDoneOnDay(h, entries, k);
-                const bg = done === true ? "var(--teal)" : done === false ? "var(--amber-soft)" : "transparent";
-                const border = done === null ? "1px solid var(--line)" : "none";
-                return (
-                  <div key={k} style={{
-                    width: 16, height: 16, flex: "0 0 auto", borderRadius: "50%", background: bg, border,
-                  }} title={`${fmtDateShort(k)}${done === true ? " · cumplido" : done === false ? " · registrado" : " · sin datos"}`} />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 10.5, color: "var(--ink-soft)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--teal)", display: "inline-block" }} /> cumplido</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--amber-soft)", display: "inline-block" }} /> registrado</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: "50%", border: "1px solid var(--line)", display: "inline-block" }} /> sin datos</span>
-      </div>
-    </div>
-  );
-}
-
-/* A tiny hand-rolled scatter plot (no chart library needed) for the sleep chart. */
-function SleepScatter({ data, xMax }) {
-  const width = 300, height = 150, padL = 22, padB = 6, padT = 6, padR = 6;
-  const plotW = width - padL - padR, plotH = height - padT - padB;
-  const yMax = 12;
-  const xScale = (d) => padL + ((d - 1) / (xMax - 1 || 1)) * plotW;
-  const yScale = (h) => padT + plotH - (Math.min(h, yMax) / yMax) * plotH;
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: 190 }}>
-      {[0, 3, 6, 9, 12].map((t) => (
-        <g key={t}>
-          <line x1={padL} x2={width - padR} y1={yScale(t)} y2={yScale(t)} stroke="var(--line)" strokeDasharray="2 2" strokeWidth={0.6} />
-          <text x={padL - 4} y={yScale(t) + 2.5} fontSize="6.5" textAnchor="end" fill="var(--ink-soft)">{t}</text>
-        </g>
-      ))}
-      {data.map((d, i) => (
-        <circle key={i} cx={xScale(d.day)} cy={yScale(d.hours)} r={2.6} fill="var(--blue)">
-          <title>{`día ${d.day}: ${d.hours} h`}</title>
-        </circle>
-      ))}
-    </svg>
-  );
-}
-
-function TabSeguimiento({ habits, entries }) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [period, setPeriod] = useState("Mes");
-
-  const selectedHabit = habits.find((h) => h.id === selectedId) || null;
-  const now = new Date();
-  const days = useMemo(() => periodDayKeys(period, now), [period]);
-
-  const heatmapHabits = selectedHabit ? [selectedHabit] : habits;
-  const general = useMemo(() => computeGeneralStats(habits, entries, days), [habits, entries, days]);
-  const specific = useMemo(() => (selectedHabit ? computeSpecificStats(selectedHabit, entries, days) : null), [selectedHabit, entries, days]);
-  const specificAll = useMemo(() => (!selectedHabit ? habits.map((h) => ({ habit: h, ...computeSpecificStats(h, entries, days) })) : []), [selectedHabit, habits, entries, days]);
-
-  const sleepHabit = useMemo(() => {
-    const flagged = habits.find((h) => h.isDefault);
-    if (flagged && flagged.categories.some((c) => c.type === "tiempo")) return flagged;
-    return habits.find((h) => /sue.o|dorm/i.test(h.name) && h.categories.some((c) => c.type === "tiempo")) || null;
-  }, [habits]);
-
-  const chartData = useMemo(() => {
-    if (!sleepHabit) return [];
-    const year = now.getFullYear(), month = now.getMonth();
-    const tiempoCat = sleepHabit.categories.find((c) => c.type === "tiempo");
-    const data = [];
-    for (let d = 1; d <= now.getDate(); d++) {
-      const k = `${year}-${pad2(month + 1)}-${pad2(d)}`;
-      const records = entries[`${sleepHabit.id}__${k}`];
-      if (records && records.length) {
-        const aggregate = computeAggregate(sleepHabit.categories, records);
-        let hours = parseFloat(aggregate.tiempo) || 0;
-        if (tiempoCat.unit === "minutos") hours = hours / 60;
-        data.push({ day: d, hours: Math.round(hours * 10) / 10 });
-      }
-    }
-    return data;
-  }, [sleepHabit, entries]);
-
-  const habitOptions = [{ value: null, label: "General (todos)" }, ...habits.map((h) => ({ value: h.id, label: h.name }))];
-  const periodOptions = FREQ_PERIODS.map((p) => ({ value: p, label: p }));
-
-  return (
-    <div style={{ padding: "0 4px" }}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <SimpleDropdown options={habitOptions} value={selectedId} onChange={setSelectedId} />
-        <SimpleDropdown options={periodOptions} value={period} onChange={setPeriod} />
+      <div class="filters">
+        <button class="filter-btn active" data-filter="todos">Todo</button>
+        <button class="filter-btn" data-filter="ingreso">Ingresos</button>
+        <button class="filter-btn" data-filter="gasto">Gastos</button>
       </div>
 
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: "16px 18px", marginBottom: 20 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 8 }}>
-          Horas de sueño — {MONTHS[now.getMonth()]}
-        </div>
-        {sleepHabit ? (
-          <div style={{ width: "100%", height: 190 }}>
-            <SleepScatter data={chartData} xMax={daysInMonth(now.getFullYear(), now.getMonth())} />
-          </div>
-        ) : (
-          <p style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
-            Crea un hábito de tiempo llamado "Dormir" o "Sueño" para ver aquí tu gráfico de horas.
-          </p>
-        )}
+      <div id="historialList"></div>
+
+      <p class="section-label backup-label">Respaldo</p>
+      <div class="backup-buttons">
+        <button class="backup-btn" id="exportBtn">Exportar respaldo</button>
+        <label class="backup-btn" for="importFile">Importar respaldo</label>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
       </div>
+      <p class="backup-hint">Descarga un archivo con tus movimientos de vez en cuando, así no los pierdes si cambias de navegador o dispositivo.</p>
+    </section>
 
-      <HabitHeatmap habitList={heatmapHabits} entries={entries} days={days} period={period} />
+  </main>
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--ink-soft)", fontWeight: 700, marginBottom: 8 }}>
-        Estadísticas generales
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 22 }}>
-        <StatCard label="Tasa de cumplimiento" value={`${general.completionRate}%`} />
-        <StatCard label="Consistencia" value={`${general.consistency}%`} />
-        <StatCard label="Frecuencia" value={general.freqLabel} small />
-        <StatCard label="Tendencia" value={
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {general.trend === "sube" && <Icon name="trending-up" size={16} color="var(--teal)" />}
-            {general.trend === "baja" && <Icon name="trending-down" size={16} color="var(--red)" />}
-            {general.trend === "estable" && <Icon name="minus" size={16} color="var(--ink-soft)" />}
-            {general.trend}
-          </span>
-        } />
-      </div>
-
-      <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--ink-soft)", fontWeight: 700, marginBottom: 8 }}>
-        {selectedHabit ? `Estadísticas de "${selectedHabit.name}"` : "Estadísticas por hábito"}
-      </div>
-
-      {selectedHabit ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
-          <StatCard label="Racha actual" value={`${specific.streak} día${specific.streak === 1 ? "" : "s"}`} />
-          <StatCard label="Días perdidos" value={specific.missed} />
-          <StatCard label="Desv. estándar (horario)" value={specific.stdDevLabel} small />
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.8fr 0.8fr 1fr", gap: 8, padding: "0 10px" }}>
-            {["Hábito", "Racha", "Perdidos", "Desv. horario"].map((h) => (
-              <div key={h} style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--ink-soft)", fontWeight: 700 }}>{h}</div>
-            ))}
-          </div>
-          {specificAll.map(({ habit, streak, missed, stdDevLabel }) => (
-            <div key={habit.id} style={{
-              display: "grid", gridTemplateColumns: "1.4fr 0.8fr 0.8fr 1fr", gap: 8, alignItems: "center",
-              background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, padding: "9px 10px", fontSize: 12.5,
-            }}>
-              <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{habit.name}</span>
-              <span style={{ fontFamily: "var(--font-mono)" }}>{streak}d</span>
-              <span style={{ fontFamily: "var(--font-mono)" }}>{missed}</span>
-              <span style={{ fontFamily: "var(--font-mono)" }}>{stdDevLabel}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatCard({ label, value, small }) {
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px" }}>
-      <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--ink-soft)", fontWeight: 600, marginBottom: 6 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: small ? 14 : 20, fontWeight: 600, color: "var(--ink)", fontFamily: "var(--font-mono)" }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-const headerTitleStyle = {
-  textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: 1.2,
-  color: "var(--ink)", margin: 0,
-};
-
-/* A protected, always-present habit: fully editable, but never deletable —
-   it's the reliable source for the sleep chart in Seguimiento. */
-const DEFAULT_SLEEP_HABIT = {
-  id: "default_sleep",
-  name: "Dormir",
-  icon: "moon",
-  categories: [{ type: "tiempo", meta: 8, unit: "horas" }],
-  frequency: "Diario",
-  days: [],
-  schedule: { time: "22:00" },
-  isDefault: true,
-};
-
-/* ---------------------------------------------------------------------- */
-/*  App shell                                                              */
-/* ---------------------------------------------------------------------- */
-
-function App() {
-  const [tab, setTab] = useState(1);
-  const [habits, setHabits] = useState([]);
-  const [entries, setEntries] = useState({});
-  const [rows, setRows] = useState([]);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const [h, rawEntries, r] = await Promise.all([
-        storageGet("habits", []),
-        storageGet("entries", {}),
-        storageGet("rows", []),
-      ]);
-
-      // Migrate legacy single-object entries (pre multi-registro model) into arrays.
-      const e = {};
-      Object.entries(rawEntries).forEach(([k, v]) => {
-        e[k] = Array.isArray(v) ? v : [{ id: "legacy", values: v.values, savedAt: v.savedAt }];
-      });
-
-      let seeded = h;
-      if (!h.some((x) => x.isDefault)) {
-        // Prefer linking to whichever existing sleep-like habit already has the
-        // person's data, rather than a strict exact-name match (which is what
-        // caused the chart to silently point at an empty duplicate before).
-        const existingSleep = h.find((x) => /sue.o|dorm/i.test(x.name) && x.categories.some((c) => c.type === "tiempo"));
-        seeded = existingSleep
-          ? h.map((x) => (x.id === existingSleep.id ? { ...x, isDefault: true, icon: x.icon || "moon" } : x))
-          : [DEFAULT_SLEEP_HABIT, ...h];
-      } else {
-        // Repair: an earlier session may have flagged the generic empty seed
-        // instead of the person's real, data-filled sleep habit. If the flagged
-        // habit is that empty seed and has no registros, re-point the flag.
-        const flagged = h.find((x) => x.isDefault);
-        const flaggedHasData = Object.keys(e).some((k) => k.startsWith(`${flagged.id}__`));
-        if (flagged.id === "default_sleep" && !flaggedHasData) {
-          const betterMatch = h.find((x) => !x.isDefault && /sue.o|dorm/i.test(x.name) && x.categories.some((c) => c.type === "tiempo"));
-          if (betterMatch) {
-            seeded = h.filter((x) => x.id !== "default_sleep").map((x) => (x.id === betterMatch.id ? { ...x, isDefault: true, icon: x.icon || "moon" } : x));
-          }
-        }
-      }
-
-      setHabits(seeded); setEntries(e); setRows(r);
-      setReady(true);
-    })();
-  }, []);
-
-  useEffect(() => { if (ready) storageSet("habits", habits); }, [habits, ready]);
-  useEffect(() => { if (ready) storageSet("entries", entries); }, [entries, ready]);
-  useEffect(() => { if (ready) storageSet("rows", rows); }, [rows, ready]);
-
-  const addHabit = (habit) => { setHabits((prev) => [...prev, habit]); setTab(1); };
-  const updateHabit = (habit) => { setHabits((prev) => prev.map((h) => (h.id === habit.id ? habit : h))); };
-  const deleteHabit = (id) => {
-    setHabits((prev) => {
-      const target = prev.find((h) => h.id === id);
-      if (!target || target.isDefault) return prev; // protected habit — never removable
-      return prev.filter((h) => h.id !== id);
-    });
-    setRows((prev) => prev.filter((r) => r.habitId !== id));
-  };
-
-  // Wipes every habit, registro and row back to a clean slate — just the
-  // protected "Dormir" habit remains, ready for real use.
-  const resetAll = () => {
-    storageClearAll();
-    setHabits([DEFAULT_SLEEP_HABIT]);
-    setEntries({});
-    setRows([]);
-    setTab(1);
-  };
-
-  // Adds a brand-new registro for (habitId, date). It never overwrites — it
-  // appends to that day's list, and the day's total is the sum of everything
-  // in it. Also makes sure a group card exists in `rows` to show it.
-  const commitEntry = (habitId, date, values) => {
-    const key = `${habitId}__${date}`;
-    const record = { id: `r_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, values, savedAt: `${pad2(new Date().getHours())}:${pad2(new Date().getMinutes())}` };
-    setEntries((prev) => ({ ...prev, [key]: [...(prev[key] || []), record] }));
-    setRows((prev) => {
-      const exists = prev.some((r) => r.habitId === habitId && r.date === date);
-      return exists ? prev : [...prev, { rowId: `${habitId}-${date}`, habitId, date }];
-    });
-  };
-
-  // Edits one specific registro in place — only that record changes; the
-  // day's total recalculates automatically since it's derived from the sum.
-  const editRecord = (habitId, date, recordId, values) => {
-    const key = `${habitId}__${date}`;
-    setEntries((prev) => ({
-      ...prev,
-      [key]: (prev[key] || []).map((r) => (r.id === recordId ? { ...r, values } : r)),
-    }));
-  };
-
-  const removeRecord = (habitId, date, recordId) => {
-    setEntries((prev) => {
-      const key = `${habitId}__${date}`;
-      const list = (prev[key] || []).filter((r) => r.id !== recordId);
-      return { ...prev, [key]: list };
-    });
-  };
-
-  if (!ready) {
-    return <div style={{ padding: "calc(env(safe-area-inset-top, 0px) + 40px) 20px 40px", textAlign: "center", color: "var(--ink-soft)" }}>Cargando…</div>;
-  }
-
-  const TAB_TITLES = { 1: "Hábito", 2: "Crear hábito", 3: "Seguimiento" };
-
-  return (
-    <>
-      <style>{`
-        :root {
-          --paper: #EDEAE1; --card: #F8F6EF; --ink: #23281F; --ink-soft: #6B7066;
-          --line: #DAD5C7; --teal: #145C3C; --teal-soft: #DCEAE1; --teal-ink: #123524;
-          --blue: #2761E8; --blue-soft: #DDE7FB; --blue-ink: #1B3F9E;
-          --amber: #C98A3B; --amber-soft: #F3E3CB; --amber-ink: #8A5A20; --red: #B24632;
-          --font-sans: 'IBM Plex Sans', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
-          --nav-h: 58px;
-        }
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-        * { box-sizing: border-box; }
-        html, body { margin: 0; background: var(--paper); height: 100%; }
-        input, select { font-family: var(--font-sans); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { scrollbar-width: none; }
-        button { font-family: var(--font-sans); }
-      `}</style>
-
-      <div style={{
-        fontFamily: "var(--font-sans)", background: "var(--paper)", color: "var(--ink)",
-        maxWidth: 640, margin: "0 auto", height: "100dvh",
-        display: "flex", flexDirection: "column", overflow: "hidden",
-      }}>
-        {/* Fixed header — always clears the Dynamic Island / notch */}
-        <div style={{
-          flex: "0 0 auto", background: "var(--paper)", borderBottom: "1px solid var(--line)",
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 14px)", paddingBottom: 12, paddingLeft: 18, paddingRight: 18,
-        }}>
-          <h1 style={headerTitleStyle}>{TAB_TITLES[tab]}</h1>
-        </div>
-
-        {/* Scrollable content — the only part of the screen that scrolls */}
-        <div style={{ flex: "1 1 auto", overflowY: "auto", paddingLeft: 18, paddingRight: 18, paddingTop: 16, paddingBottom: 20 }} className="no-scrollbar">
-          {tab === 1 && <TabRegistro habits={habits} entries={entries} commitEntry={commitEntry} editRecord={editRecord} removeRecord={removeRecord} rows={rows} goToCreate={() => setTab(2)} />}
-          {tab === 2 && <TabCrear onCreate={addHabit} onUpdate={updateHabit} onDelete={deleteHabit} onResetAll={resetAll} habits={habits} />}
-          {tab === 3 && <TabSeguimiento habits={habits} entries={entries} />}
-        </div>
-
-        {/* Fixed footer nav — always pinned to the bottom, never scrolls away */}
-        <div style={{
-          flex: "0 0 auto", background: "var(--paper)", borderTop: "1px solid var(--line)",
-          paddingLeft: 18, paddingRight: 18, paddingTop: 8,
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-        }}>
-          <div style={{
-            display: "flex", height: "var(--nav-h)", boxSizing: "border-box",
-            background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: 5, gap: 4,
-          }}>
-            <NavBtn active={tab === 1} onClick={() => setTab(1)} emoji="📝" label="Hábito" />
-            <NavBtn active={tab === 2} onClick={() => setTab(2)} emoji="➕" label="Crear" />
-            <NavBtn active={tab === 3} onClick={() => setTab(3)} emoji="📊" label="Seguimiento" />
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function NavBtn({ active, onClick, emoji, label }) {
-  return (
-    <button onClick={onClick} style={{
-      flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-      padding: "10px 0", borderRadius: 999, border: "none", cursor: "pointer",
-      background: active ? "var(--teal)" : "transparent", color: active ? "#fff" : "var(--ink-soft)",
-      fontSize: 12.5, fontWeight: 600, transition: "background 0.15s ease",
-    }}>
-      <span style={{ fontSize: 15 }}>{emoji}</span> {label}
+  <nav class="tabbar">
+    <button class="tab active" data-view="registrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Registrar</span>
     </button>
-  );
-}
+    <button class="tab" data-view="historial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span>Historial</span>
+    </button>
+  </nav>
 
-createRoot(document.getElementById("root")).render(<App />);
-
-</script>
+  <div class="toast" id="toast"></div>
+</div>
 
 <script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
+(function(){
+  "use strict";
+
+  var GASTO_MAIN = ['Renta','Transporte','Alimentos','Otros'];
+  var GASTO_SUB = ['Salud','Party','Actividades','Weed','Comida Chatarra','Ocio','Suscripciones'];
+  var INGRESO_MAIN = ['Salario','Comisiones','Venta','Otros'];
+
+  var state = {
+    type: 'gasto',
+    category: GASTO_MAIN[0],
+    transactions: [],
+    filter: 'todos',
+    monthCursor: new Date(),
+    otrosOpen: false
+  };
+  state.monthCursor.setDate(1);
+
+  var STORAGE_KEY = 'transacciones';
+
+  function hasArtifactStorage(){
+    return typeof window !== 'undefined' && !!window.storage && typeof window.storage.get === 'function';
+  }
+
+  // ---------- Storage ----------
+  async function loadData(){
+    var fromLocal = [];
+    var fromArtifact = [];
+
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) fromLocal = JSON.parse(raw) || [];
+    }catch(e){ /* localStorage no disponible */ }
+
+    try{
+      if(hasArtifactStorage()){
+        var res = await window.storage.get(STORAGE_KEY, false);
+        if(res && res.value) fromArtifact = JSON.parse(res.value) || [];
+      }
+    }catch(e){ /* almacenamiento del artefacto no disponible */ }
+
+    // Fusiona ambas fuentes por id para no perder registros de ninguna de las dos
+    var map = {};
+    fromLocal.concat(fromArtifact).forEach(function(tx){
+      if(tx && tx.id) map[tx.id] = tx;
+    });
+    state.transactions = Object.keys(map).map(function(k){ return map[k]; });
+
+    // Re-sincroniza ambos almacenes con el resultado fusionado
+    await saveData();
+  }
+
+  async function saveData(){
+    var ok = false;
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+      ok = true;
+    }catch(e){ /* localStorage no disponible */ }
+
+    try{
+      if(hasArtifactStorage()){
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state.transactions), false);
+        ok = true;
+      }
+    }catch(e){ /* almacenamiento del artefacto no disponible */ }
+
+    if(!ok) showToast('No se pudo guardar en este dispositivo');
+  }
+
+  // ---------- Helpers ----------
+  function fmt(n){
+    var sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(Math.round(n)).toLocaleString('es-MX');
+  }
+
+  function todayISO(){
+    var d = new Date();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  function capitalize(s){
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ t.classList.remove('show'); }, 1400);
+  }
+
+  function computeTotals(list){
+    var ing = 0, gas = 0;
+    list.forEach(function(tx){
+      if(tx.type === 'ingreso') ing += tx.amount;
+      else gas += tx.amount;
+    });
+    return { ingresos: ing, gastos: gas, remanente: ing - gas };
+  }
+
+  // ---------- Rendering: summary ----------
+  function renderSummary(){
+    var t = computeTotals(state.transactions);
+    document.getElementById('sumIngresos').textContent = fmt(t.ingresos);
+    document.getElementById('sumGastos').textContent = fmt(t.gastos);
+    var remEl = document.getElementById('sumRemanente');
+    remEl.textContent = fmt(t.remanente);
+    remEl.classList.toggle('neg', t.remanente < 0);
+  }
+
+  // ---------- Rendering: registrar ----------
+  function renderChips(){
+    var wrap = document.getElementById('chipsWrap');
+    var listWrap = document.getElementById('otrosListWrap');
+    wrap.innerHTML = '';
+    listWrap.innerHTML = '';
+
+    var mainList = state.type === 'gasto' ? GASTO_MAIN : INGRESO_MAIN;
+
+    mainList.forEach(function(cat){
+      var isOtros = (cat === 'Otros');
+      var isActive = isOtros
+        ? (state.type === 'gasto' ? (GASTO_SUB.indexOf(state.category) !== -1 || state.category === 'Otros') : state.category === 'Otros')
+        : (state.category === cat);
+
+      var b = document.createElement('button');
+      b.className = 'chip type-' + state.type
+        + (isActive ? ' active' : '')
+        + (isOtros && state.otrosOpen ? ' expanded' : '');
+      b.textContent = cat;
+
+      b.addEventListener('click', function(){
+        if(isOtros && state.type === 'gasto'){
+          state.otrosOpen = !state.otrosOpen;
+          renderChips();
+        } else if(isOtros && state.type === 'ingreso'){
+          state.category = 'Otros';
+          state.otrosOpen = false;
+          renderChips();
+        } else {
+          state.category = cat;
+          state.otrosOpen = false;
+          renderChips();
+        }
+      });
+
+      wrap.appendChild(b);
+    });
+
+    if(state.type === 'gasto' && state.otrosOpen){
+      var listEl = document.createElement('div');
+      listEl.className = 'otros-list';
+      GASTO_SUB.forEach(function(sub){
+        var row = document.createElement('div');
+        var active = state.category === sub;
+        row.className = 'otros-list-item' + (active ? ' active' : '');
+        row.innerHTML = '<span>' + sub + '</span>' + (active ? '<span class="check">✓</span>' : '');
+        row.addEventListener('click', function(){
+          state.category = sub;
+          state.otrosOpen = false;
+          renderChips();
+        });
+        listEl.appendChild(row);
+      });
+      listWrap.appendChild(listEl);
+    }
+  }
+
+  function renderTodayList(){
+    var todayStr = todayISO();
+    var list = state.transactions
+      .filter(function(tx){ return tx.date === todayStr; })
+      .sort(function(a,b){ return b.createdAt - a.createdAt; });
+
+    var el = document.getElementById('todayList');
+    el.innerHTML = '';
+
+    if(list.length === 0){
+      el.innerHTML = '<div class="empty-state">Aún no registras movimientos hoy.</div>';
+      return;
+    }
+
+    list.forEach(function(tx){
+      el.appendChild(buildItemRow(tx));
     });
   }
+
+  function buildItemRow(tx){
+    var row = document.createElement('div');
+    row.className = 'item';
+
+    var info = document.createElement('div');
+    info.className = 'item-info';
+    var cat = document.createElement('div');
+    cat.className = 'item-cat';
+    cat.textContent = tx.category;
+    info.appendChild(cat);
+    if(tx.note){
+      var note = document.createElement('div');
+      note.className = 'item-note';
+      note.textContent = tx.note;
+      info.appendChild(note);
+    }
+    row.appendChild(info);
+
+    var right = document.createElement('div');
+    right.className = 'item-right';
+    var amt = document.createElement('span');
+    amt.className = 'item-amount ' + tx.type;
+    amt.textContent = (tx.type === 'ingreso' ? '+' : '-') + fmt(tx.amount).replace('-','');
+    right.appendChild(amt);
+
+    var del = document.createElement('button');
+    del.className = 'del-btn';
+    del.setAttribute('aria-label','Eliminar');
+    del.textContent = '✕';
+    del.addEventListener('click', function(){
+      deleteTransaction(tx.id);
+    });
+    right.appendChild(del);
+
+    row.appendChild(right);
+    return row;
+  }
+
+  // ---------- Rendering: historial ----------
+  function renderMonthNav(){
+    var label = state.monthCursor.toLocaleDateString('es-MX', { month:'long', year:'numeric' });
+    document.getElementById('monthLabel').textContent = capitalize(label);
+  }
+
+  function getMonthTransactions(){
+    var y = state.monthCursor.getFullYear();
+    var m = state.monthCursor.getMonth();
+    return state.transactions.filter(function(tx){
+      var d = new Date(tx.date + 'T00:00:00');
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+  }
+
+  function renderMonthSummary(monthList){
+    var t = computeTotals(monthList);
+    document.getElementById('monthSummary').innerHTML =
+      'Ingresos <b>' + fmt(t.ingresos) + '</b> · Gastos <b>' + fmt(t.gastos) +
+      '</b> · Saldo <b>' + fmt(t.remanente) + '</b>';
+  }
+
+  function renderHistorialList(){
+    var monthList = getMonthTransactions();
+    renderMonthSummary(monthList);
+
+    var filtered = monthList.filter(function(tx){
+      return state.filter === 'todos' || tx.type === state.filter;
+    });
+
+    var container = document.getElementById('historialList');
+    container.innerHTML = '';
+
+    if(filtered.length === 0){
+      container.innerHTML = '<div class="empty-state">Sin movimientos en este período.</div>';
+      return;
+    }
+
+    // group by date
+    var groups = {};
+    filtered.forEach(function(tx){
+      if(!groups[tx.date]) groups[tx.date] = [];
+      groups[tx.date].push(tx);
+    });
+
+    var dates = Object.keys(groups).sort(function(a,b){ return b.localeCompare(a); });
+
+    dates.forEach(function(dateStr){
+      var dayTx = groups[dateStr].sort(function(a,b){ return b.createdAt - a.createdAt; });
+      var dayTotals = computeTotals(dayTx);
+      var net = dayTotals.remanente;
+
+      var group = document.createElement('div');
+      group.className = 'day-group';
+
+      var header = document.createElement('div');
+      header.className = 'day-header';
+      var d = new Date(dateStr + 'T00:00:00');
+      var dayName = capitalize(d.toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' }));
+      header.innerHTML = '<span class="day-name">' + dayName + '</span>' +
+        '<span class="day-net ' + (net >= 0 ? 'pos' : 'neg') + '">' + fmt(net) + '</span>';
+      group.appendChild(header);
+
+      dayTx.forEach(function(tx){
+        group.appendChild(buildItemRow(tx));
+      });
+
+      container.appendChild(group);
+    });
+  }
+
+  // ---------- Actions ----------
+  function setType(type){
+    state.type = type;
+    state.category = type === 'gasto' ? GASTO_MAIN[0] : INGRESO_MAIN[0];
+    state.otrosOpen = false;
+
+    document.getElementById('segGasto').classList.toggle('active', type === 'gasto');
+    document.getElementById('segIngreso').classList.toggle('active', type === 'ingreso');
+
+    var submitBtn = document.getElementById('submitBtn');
+    submitBtn.classList.remove('type-gasto','type-ingreso');
+    submitBtn.classList.add('type-' + type);
+    submitBtn.textContent = type === 'gasto' ? 'Registrar gasto' : 'Registrar ingreso';
+
+    renderChips();
+  }
+
+  async function addTransaction(){
+    var amountInput = document.getElementById('amountInput');
+    var amount = parseFloat(amountInput.value);
+    if(!amount || amount <= 0){
+      amountInput.focus();
+      return;
+    }
+    var dateVal = document.getElementById('dateInput').value || todayISO();
+    var note = document.getElementById('noteInput').value.trim();
+
+    var tx = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      type: state.type,
+      category: state.category,
+      amount: amount,
+      note: note,
+      date: dateVal,
+      createdAt: Date.now()
+    };
+
+    state.transactions.push(tx);
+    await saveData();
+
+    amountInput.value = '';
+    document.getElementById('noteInput').value = '';
+
+    renderSummary();
+    renderTodayList();
+    renderHistorialList();
+    showToast(tx.type === 'gasto' ? 'Gasto registrado' : 'Ingreso registrado');
+    amountInput.focus();
+  }
+
+  async function deleteTransaction(id){
+    if(!confirm('¿Eliminar este movimiento?')) return;
+    state.transactions = state.transactions.filter(function(tx){ return tx.id !== id; });
+    await saveData();
+    renderSummary();
+    renderTodayList();
+    renderHistorialList();
+    showToast('Eliminado');
+  }
+
+  function exportBackup(){
+    var data = JSON.stringify(state.transactions, null, 2);
+    var blob = new Blob([data], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'respaldo-gastos-' + todayISO() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Respaldo exportado');
+  }
+
+  async function importBackup(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    try{
+      var text = await file.text();
+      var imported = JSON.parse(text);
+      if(!Array.isArray(imported)) throw new Error('formato inválido');
+
+      var existingIds = {};
+      state.transactions.forEach(function(t){ existingIds[t.id] = true; });
+
+      var added = 0;
+      imported.forEach(function(tx){
+        if(tx && tx.id && tx.amount && tx.type && tx.date && !existingIds[tx.id]){
+          state.transactions.push(tx);
+          existingIds[tx.id] = true;
+          added++;
+        }
+      });
+
+      await saveData();
+      renderSummary();
+      renderTodayList();
+      renderMonthNav();
+      renderHistorialList();
+      showToast(added + ' movimiento(s) importados');
+    }catch(err){
+      showToast('Archivo no válido');
+    }
+    e.target.value = '';
+  }
+
+  function switchView(view){
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById('view-' + view).classList.add('active');
+    document.querySelectorAll('.tab').forEach(function(t){
+      t.classList.toggle('active', t.dataset.view === view);
+    });
+  }
+
+  // ---------- Ticket edge (signature element) ----------
+  function drawTicketEdge(){
+    var edge = document.getElementById('ticketEdge');
+    var width = edge.getBoundingClientRect().width;
+    var tooth = 14;
+    var count = Math.max(6, Math.round(width / tooth));
+    var step = 100 / count;
+    var points = ['0% 0%'];
+    for(var i = 0; i <= count; i++){
+      var x = i * step;
+      var y = (i % 2 === 0) ? 100 : 0;
+      points.push(x + '% ' + y + '%');
+    }
+    points.push('100% 0%');
+    edge.style.clipPath = 'polygon(' + points.join(',') + ')';
+  }
+
+  // ---------- Init ----------
+  async function init(){
+    document.getElementById('dateInput').value = todayISO();
+
+    document.getElementById('segGasto').addEventListener('click', function(){ setType('gasto'); });
+    document.getElementById('segIngreso').addEventListener('click', function(){ setType('ingreso'); });
+    document.getElementById('submitBtn').addEventListener('click', addTransaction);
+    document.getElementById('amountInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') addTransaction();
+    });
+
+    document.querySelectorAll('.tab').forEach(function(t){
+      t.addEventListener('click', function(){ switchView(t.dataset.view); });
+    });
+
+    document.getElementById('prevMonth').addEventListener('click', function(){
+      state.monthCursor.setMonth(state.monthCursor.getMonth() - 1);
+      renderMonthNav();
+      renderHistorialList();
+    });
+    document.getElementById('nextMonth').addEventListener('click', function(){
+      state.monthCursor.setMonth(state.monthCursor.getMonth() + 1);
+      renderMonthNav();
+      renderHistorialList();
+    });
+
+    document.querySelectorAll('.filter-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.filter = btn.dataset.filter;
+        renderHistorialList();
+      });
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', exportBackup);
+    document.getElementById('importFile').addEventListener('change', importBackup);
+
+    window.addEventListener('resize', drawTicketEdge);
+
+    await loadData();
+    renderChips();
+    renderSummary();
+    renderTodayList();
+    renderMonthNav();
+    renderHistorialList();
+    drawTicketEdge();
+  }
+
+  init();
+})();
 </script>
 </body>
 </html>
